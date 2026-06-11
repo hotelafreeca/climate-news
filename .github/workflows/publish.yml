@@ -1,0 +1,48 @@
+name: 뉴스 수집 및 배포
+
+on:
+  schedule:
+    # KST 06:00 / 12:00 / 17:00 (UTC 21:00 전일 / 03:00 / 08:00)
+    - cron: "0 21 * * *"
+    - cron: "0 3 * * *"
+    - cron: "0 8 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 뉴스 수집 실행
+        run: python3 fetch_news.py
+
+      - name: index.html 준비
+        run: |
+          mkdir -p public
+          cp news_*.html public/
+          cp "$(ls -t news_*.html | head -1)" public/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,5 @@
+.DS_Store
+*.xlsx
+news_*.html
+.claude/
+__pycache__/
