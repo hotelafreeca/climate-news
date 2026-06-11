@@ -1664,7 +1664,7 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>기후로운 경제생활 — {date_str}</title>
+<title>기후로운 경제생활 뉴스 모니터링</title>
 <style>{css}</style>
 </head>
 <body>
