@@ -63,6 +63,7 @@ CATEGORIES = [
          "연기금 에너지 인프라 투자", "노르웨이 국부펀드 기후"
      ]},
     {"id": "wx",   "name": "기상이변·극단기후 현상",       "color": "#EF7D2E", "quota": 5,
+     "style": "life",   # 기업 보너스 제외 — CSR·동정 기사가 기업명으로 상위 차지하는 것 방지
      "keywords": [
          "역대급 폭염 원인", "기상이변 극단기후", "해수면 온도 상승",
          "가뭄 홍수 피해", "산불 피해 경제"
@@ -125,6 +126,11 @@ SCORE_NUM_RE = r"\d+(?:[.,]\d+)?\s*(?:조|억|만\s*대|%|퍼센트|달러|원|G
 WEATHER_TERMS = [
     "폭염", "폭설", "한파", "장마", "호우", "홍수", "산불", "태풍",
     "가뭄", "이상기후", "기상이변", "해수면", "빙하", "열대야", "폭우",
+]
+# 기상이변 카테고리 통과 요건 — 제목에 이 중 하나는 있어야 함
+WX_REQUIRED_TERMS = WEATHER_TERMS + [
+    "엘니뇨", "라니냐", "기온", "기후", "무더위", "열돔", "이상고온",
+    "이상저온", "강수량", "해빙", "온난화",
 ]
 ECON_LINK_TERMS = [
     "피해액", "보험", "손실", "가격", "물가", "전력", "요금", "산업",
@@ -241,7 +247,12 @@ EXPERTS = [
     {"name": "홍종호",    "role": "서울대 환경대학원 교수",          "tag": "진행자",      "search": "홍종호 서울대 환경"},
     {"name": "한병화",    "role": "유진투자증권 이사",               "tag": "금융·배터리", "search": "한병화 유진투자증권"},
     {"name": "김백민",    "role": "부경대 환경대기과학과 교수",       "tag": "기상·기후과학","search": "김백민 부경대"},
-    {"name": "지현영",    "role": "녹색전환연구소 부소장",            "tag": "정책·ESG",   "search": "지현영 녹색전환연구소"},
+    {"name": "지현영",    "role": "서울대 환경에너지법정책센터 변호사", "tag": "정책·법",   "search": "지현영 변호사"},
+    {"name": "김병권",    "role": "녹색전환연구소 소장",              "tag": "기후경제",   "search": "김병권 녹색전환연구소"},
+    {"name": "권석준",    "role": "성균관대 화학공학과 교수",          "tag": "반도체·기술","search": "권석준 성균관대"},
+    {"name": "권효재",    "role": "COR 에너지인사이트 대표",          "tag": "에너지",     "search": "권효재 에너지"},
+    {"name": "차영주",    "role": "와이즈경제연구소 소장",             "tag": "경제·투자",  "search": "차영주 와이즈경제연구소"},
+    {"name": "선정수",    "role": "클리프 기자",                      "tag": "기후미디어", "search": "선정수 기자"},
     {"name": "서재철",    "role": "녹색연합 전문위원",                "tag": "산불·산림",  "search": "서재철 녹색연합"},
     {"name": "이명주",    "role": "건물 에너지 전문가",               "tag": "건물·에너지","search": "이명주 건물 에너지"},
     {"name": "강구상",    "role": "대외경제정책연구원 북미유럽팀장",  "tag": "국제통상",   "search": "강구상 대외경제정책연구원"},
@@ -277,6 +288,11 @@ REPORTERS = [
     {"name": "황덕현", "media": "뉴스1",      "beat": "기후/환경",   "search": "황덕현 뉴스1 기후"},
     {"name": "이재영", "media": "연합뉴스",   "beat": "기후",        "search": "이재영 연합뉴스 기후"},
     {"name": "정종오", "media": "아이뉴스24", "beat": "기후",        "search": "정종오 아이뉴스24 기후"},
+    # 기후 전문 매체·단체
+    {"name": "윤지로", "media": "클리프",     "beat": "기후미디어",  "search": "윤지로 클리프"},
+    {"name": "선정수", "media": "클리프",     "beat": "기후 팩트체크","search": "선정수 기후"},
+    {"name": "권오성", "media": "기후솔루션", "beat": "기후·에너지", "search": "권오성 기후솔루션"},
+    {"name": "뉴스룸", "media": "그린피스",   "beat": "기후 캠페인", "search": "그린피스 기후 에너지"},
 ]
 
 # ── 정책 동향: 인물 + 기관 ────────────────────────────────────
@@ -310,6 +326,9 @@ EXCLUDE_TITLE_PATTERNS = [
     "보도설명자료", "설명자료", "해명자료", "알려 드립니다",
     "시리즈", "좋은법", "4U",
     "카지노", "홀덤", "슬롯", "베팅",
+    # CSR·동정성 기사 (정보값 낮음)
+    "봉사단", "봉사활동", "사회공헌", "성금", "기부금", "감사패",
+    "표창", "위촉식", "헌혈", "김장 나눔",
 ]
 
 EXCLUDE_SOURCE_PATTERNS = [
@@ -336,7 +355,14 @@ PREFERRED_SOURCES_KO = {
     "비즈니스포스트", "이데일리", "뉴시스", "서울경제"
 }
 
-PORTAL_SOURCES = {"네이트", "v.daum.net", "daum", "nate.com", "nate"}
+PORTAL_SOURCES = {"네이트", "v.daum.net", "daum", "nate.com", "nate", "다음뉴스", "Daum"}
+
+# 제목 말미 대괄호에서 소스를 추정할 때 언론사명으로 오인하면 안 되는 섹션 표기
+NOT_PRESS_TOKENS = {
+    "포토로그", "포토", "영상", "단독", "속보", "르포", "기획", "칼럼",
+    "사설", "인터뷰", "종합", "전문", "현장", "오늘의 날씨", "날씨",
+    "퀴즈", "카드뉴스", "팩트체크", "그래픽",
+}
 
 # ── 콘텐츠 캘린더 ─────────────────────────────────────────────
 CALENDAR = {
@@ -774,14 +800,14 @@ def parse_rss(data):
         # "… > 뉴스" 같은 사이트 내비게이션 꼬리 제거
         title = re.sub(r"\s*>\s*뉴스$", "", title)
 
-        # 포털 소스명 보정
+        # 포털 소스명 보정 — 단, 섹션 표기([포토로그] 등)는 언론사명이 아님
         if not source or source in PORTAL_SOURCES:
             m = re.search(r'[\[\(]([^\]\)]{2,15})[\]\)]\s*$', title)
-            if m:
+            if m and m.group(1) not in NOT_PRESS_TOKENS:
                 source = m.group(1)
                 title = re.sub(r'\s*[\[\(][^\]\)]{2,15}[\]\)]\s*$', '', title).strip()
 
-        if source in PORTAL_SOURCES:
+        if source in PORTAL_SOURCES or source in NOT_PRESS_TOKENS:
             source = ""
 
         for key, pretty in SOURCE_RENAME.items():
@@ -833,15 +859,33 @@ def resolve_gnews_url(link):
         return link
 
 
-def nate_press_name(url):
-    """네이트 뉴스 페이지에서 원문 언론사명 추출"""
+PORTAL_SITE_NAMES = {
+    "네이트 뉴스", "네이트", "다음뉴스", "다음 뉴스", "Daum", "다음",
+    "네이버 뉴스", "naver",
+}
+
+
+def page_press_name(url):
+    """기사 페이지에서 원문 언론사명 추출
+    (네이트 medium 링크 → og:article:author → og:site_name 순)"""
+    url = url.replace("m.news.nate.com", "news.nate.com")
     try:
         page = fetch_url(url)
         if not page:
             return ""
-        text = page.decode("euc-kr", "replace")
-        m = re.search(r'<a [^>]*class="medium"[^>]*>([^<]+)</a>', text)
-        return m.group(1).strip() if m else ""
+        try:
+            text = page.decode("utf-8")
+        except UnicodeDecodeError:
+            text = page.decode("euc-kr", "replace")
+        for pat in (r'<a [^>]*class="medium"[^>]*>([^<]+)</a>',
+                    r'<meta property="og:article:author" content="([^"]+)"',
+                    r'<meta property="og:site_name" content="([^"]+)"'):
+            m = re.search(pat, text)
+            if m:
+                name = m.group(1).strip()
+                if name and name not in PORTAL_SITE_NAMES:
+                    return name
+        return ""
     except Exception:
         return ""
 
@@ -856,17 +900,17 @@ def enrich_sources(items):
         if real != item["link"]:
             item["link"] = real
         host = urllib.parse.urlparse(real).hostname or ""
-        if "news.nate.com" in host:
-            press = nate_press_name(real)
+        if "nate.com" in host or "daum.net" in host:
+            press = page_press_name(real)
             if press:
                 item["source"] = press
-                continue
+            continue
         domain = host.removeprefix("www.").removesuffix(".com").removesuffix(".co.kr")
         for key, pretty in SOURCE_RENAME.items():
             if key in domain.lower():
                 domain = pretty
                 break
-        if domain and "google" not in domain and "nate" not in domain:
+        if domain and not any(p in domain for p in ("google", "nate", "daum")):
             item["source"] = domain
     return items
 
@@ -912,12 +956,18 @@ def deduplicate(items):
 # 필터 함수
 # ─────────────────────────────────────────────────────────────
 def is_excluded(item):
-    """홍보성·행사성 기사 필터"""
+    """홍보성·행사성 기사 필터 + 해외 스팸 도메인 차단"""
     title  = item.get("title",  "") or ""
     source = item.get("source", "") or ""
     if any(p in title  for p in EXCLUDE_TITLE_PATTERNS):
         return True
     if any(p in source for p in EXCLUDE_SOURCE_PATTERNS):
+        return True
+    # .vn 등 베트남 번역 사이트 전면 차단 (소스명·링크 도메인 양쪽)
+    if re.search(r"\.vn\b", source, re.I):
+        return True
+    host = urllib.parse.urlparse(item.get("link", "")).hostname or ""
+    if host.endswith(".vn"):
         return True
     return False
 
@@ -1010,6 +1060,10 @@ def fetch_category(cat):
         time.sleep(REQUEST_DELAY)
     all_items = [i for i in all_items
                  if not is_excluded(i) and not is_weather_gated(i)]
+    if cat["id"] == "wx":
+        # 기상 카테고리는 제목에 기상·기후 용어가 있어야 통과 (지역 동정 차단)
+        all_items = [i for i in all_items
+                     if any(k in i["title"] for k in WX_REQUIRED_TERMS)]
 
     def source_score_ko(item):
         src = item.get("source") or ""
