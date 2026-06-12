@@ -60,7 +60,7 @@ CATEGORIES = [
      "keywords": [
          "기후금융", "탄소배출권 가격", "국민연금 ESG",
          "스코프3 탄소발자국", "CBAM 탄소국경세",
-         "연기금 에너지 인프라 투자"
+         "연기금 에너지 인프라 투자", "노르웨이 국부펀드 기후"
      ]},
     {"id": "wx",   "name": "기상이변·극단기후 현상",       "color": "#EF7D2E", "quota": 5,
      "keywords": [
@@ -84,10 +84,13 @@ CATEGORIES = [
          "COP 기후총회", "NDC 온실가스 감축", "기후 예산 삭감",
          "기후특위 활동", "탄소중립법 개정"
      ]},
-    {"id": "life", "name": "기후·일상·소비·라이프스타일",  "color": "#EF7D2E", "quota": 5,
+    {"id": "life", "name": "기후·일상·소비·라이프스타일",  "color": "#EF7D2E", "quota": 8,
+     "style": "life",   # 기업·돈 신호 대신 생활 연결 위주로 스코어링
      "keywords": [
          "제로에너지 건물", "도시 열섬 대책", "쓰레기 직매립 금지",
-         "탈플라스틱"
+         "탈플라스틱", "기후변화 먹거리 가격", "기후 와인 작황",
+         "헌옷 의류 폐기물", "기후변화 부동산 가치", "기후 보험료",
+         "배추 김치 기후변화"
      ]},
     {"id": "tech", "name": "기술 레이더",                 "color": "#EF7D2E", "quota": 5,
      "keywords": [
@@ -131,6 +134,32 @@ ECON_LINK_TERMS = [
 PROCEDURAL_TERMS = [
     "협약 체결", "위원회 구성", "포럼 개최", "세미나", "토론회",
     "캠페인", "선포식", "발대식", "공동선언", "출범식", "협의체",
+]
+# 특징주·단타성 시황 기사 — 실질 신호(수주·계약 등) 없으면 강한 감점
+TICKER_NOISE_TERMS = [
+    "특징주", "상한가", "하한가", "신고가", "급등 마감", "강세 마감",
+    "상승 마감", "하락 마감", "매수세", "순매수", "수급", "테마주",
+    "관련주", "목표주가", "오늘의 주가", "주가 흐름", "%↑", "%↓",
+    "% 상승", "% 하락", "장 초반", "장중",
+]
+SUBSTANTIVE_TERMS = [
+    "수주", "계약", "실적 발표", "인수", "합병", "투자 유치",
+    "공장", "증설", "정책", "법안", "출시",
+]
+# 생활·의외 연결 신호 — 조회수와 무관하게 프로그램이 좋아하는 결
+# (와인·쌀·부동산·의류·국부펀드·김치·헌옷수거함 류의 "알고 보면 기후 얘기")
+LIFE_ANGLE_TERMS = [
+    "와인", "김치", "배추", "쌀값", "쌀 ", "커피", "치킨", "맥주",
+    "과일", "사과", "수산물", "오징어", "어획", "양식", "식탁", "밥상",
+    "패션", "의류", "헌옷", "옷장", "부동산", "집값", "전세", "보험료",
+    "국부펀드", "연금", "여행", "스키", "축제", "올림픽", "월드컵",
+    "테니스", "마라톤", "골프", "꿀벌", "산호", "송이", "젓갈",
+    "명태", "한라봉", "감귤", "수돗물", "급식",
+]
+# 발품 기획·심층 보도 신호 (제목 표기 관행)
+FEATURE_TERMS = [
+    "[단독", "[르포", "[기획", "[심층", "[탐사", "[현장", "[추적",
+    "단독]", "르포]", "10년 관찰", "보고서",
 ]
 
 # ── 경제 레이더 (기후 키워드 밖 핫 경제 이슈 → 기후 각도 역검토) ──
@@ -195,6 +224,9 @@ PRIORITY_EN_QUERIES = [
     # 기후정책·법
     '"Reuters" climate policy NDC emissions',
     '"New York Times" climate policy',
+    # 외신이 주목하는 한국 기후·에너지
+    '"South Korea" climate energy policy',
+    '"South Korea" battery EV renewable',
 ]
 
 # ── 레이어2 우선 소스 ─────────────────────────────────────────
@@ -282,7 +314,15 @@ EXCLUDE_TITLE_PATTERNS = [
 
 EXCLUDE_SOURCE_PATTERNS = [
     "정책브리핑", "대한민국 정책브리핑", "국가기후위기대응위원회",
+    "Vietnam.vn", "vietnam.vn",        # 베트남 한국어 번역 스팸
+    "민심뉴스", "bnt뉴스", "bntnews",   # 저품질 다량 매체
 ]
+
+# 소스명 표기 교정 (substring 매칭, 소문자 비교)
+SOURCE_RENAME = {
+    "thecommoditiesnews": "CNews",
+    "seouleconews": "서울이코노미뉴스",
+}
 
 EXPERT_EXCLUDE_PATTERNS = [
     "[포토]", "[사진]", "포토뉴스", "기념촬영", "기념사",
@@ -731,6 +771,9 @@ def parse_rss(data):
             if not source:
                 source = parts[1].strip()
 
+        # "… > 뉴스" 같은 사이트 내비게이션 꼬리 제거
+        title = re.sub(r"\s*>\s*뉴스$", "", title)
+
         # 포털 소스명 보정
         if not source or source in PORTAL_SOURCES:
             m = re.search(r'[\[\(]([^\]\)]{2,15})[\]\)]\s*$', title)
@@ -740,6 +783,11 @@ def parse_rss(data):
 
         if source in PORTAL_SOURCES:
             source = ""
+
+        for key, pretty in SOURCE_RENAME.items():
+            if key in source.lower():
+                source = pretty
+                break
 
         pub_dt = parse_date(pub_str)
 
@@ -751,6 +799,75 @@ def parse_rss(data):
                 "pub_str": format_date(pub_dt),
                 "source":  source,
             })
+    return items
+
+
+def resolve_gnews_url(link):
+    """Google News 리다이렉트 링크 → 원문 URL (batchexecute 디코딩)"""
+    if "news.google.com" not in link:
+        return link
+    try:
+        page = fetch_url(link)
+        if not page:
+            return link
+        m = re.search(rb'<c-wiz[^>]*data-p="([^"]+)"', page)
+        if not m:
+            return link
+        import json as _json
+        data_p = m.group(1).decode().replace("&quot;", '"').replace("&amp;", "&")
+        obj = _json.loads(data_p.replace("%.@.", '["garturlreq",'))
+        payload = urllib.parse.urlencode({
+            "f.req": _json.dumps(
+                [[["Fbv4je", _json.dumps(obj[:-6] + obj[-2:]), None, "generic"]]])
+        }).encode()
+        req = urllib.request.Request(
+            "https://news.google.com/_/DotsSplashUi/data/batchexecute",
+            data=payload,
+            headers={**HTTP_HEADERS,
+                     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = resp.read().decode("utf-8", "replace")
+        m2 = re.search(r'https?://[^"\\]+', _json.loads(body.splitlines()[2])[0][2])
+        return m2.group(0) if m2 else link
+    except Exception:
+        return link
+
+
+def nate_press_name(url):
+    """네이트 뉴스 페이지에서 원문 언론사명 추출"""
+    try:
+        page = fetch_url(url)
+        if not page:
+            return ""
+        text = page.decode("euc-kr", "replace")
+        m = re.search(r'<a [^>]*class="medium"[^>]*>([^<]+)</a>', text)
+        return m.group(1).strip() if m else ""
+    except Exception:
+        return ""
+
+
+def enrich_sources(items):
+    """출처 없는 기사 보정: 구글 리다이렉트를 풀어 원문 URL로 바꾸고,
+    네이트 경유 기사는 원문 언론사명을 추출해 채운다"""
+    for item in items:
+        if item.get("source"):
+            continue
+        real = resolve_gnews_url(item["link"])
+        if real != item["link"]:
+            item["link"] = real
+        host = urllib.parse.urlparse(real).hostname or ""
+        if "news.nate.com" in host:
+            press = nate_press_name(real)
+            if press:
+                item["source"] = press
+                continue
+        domain = host.removeprefix("www.").removesuffix(".com").removesuffix(".co.kr")
+        for key, pretty in SOURCE_RENAME.items():
+            if key in domain.lower():
+                domain = pretty
+                break
+        if domain and "google" not in domain and "nate" not in domain:
+            item["source"] = domain
     return items
 
 
@@ -818,25 +935,56 @@ def is_expert_excluded(item):
 # ─────────────────────────────────────────────────────────────
 # 아이템성 스코어
 # ─────────────────────────────────────────────────────────────
-def item_score(title):
-    """제목 기반 발제 가능성 점수 (과거 조회수 상관 신호)"""
+def item_score(title, life_mode=False):
+    """제목 기반 발제 가능성 점수 (과거 조회수 상관 신호 + 프로그램 결 신호)
+    life_mode: 생활·소비 카테고리용 — 기업·돈 보너스 없이 생활 연결 위주 평가"""
     s = 0
     has_company = any(c in title for c in SCORE_COMPANIES)
-    if has_company:
+    if any(k in title for k in LIFE_ANGLE_TERMS):
         s += 3
-    if re.search(SCORE_NUM_RE, title):
+    if any(k in title for k in FEATURE_TERMS):
         s += 2
-    if any(k in title for k in SCORE_MONEY):
-        s += 2
-    if any(k in title for k in SCORE_TURNING):
-        s += 1
+    if not life_mode:
+        if has_company:
+            s += 3
+        if re.search(SCORE_NUM_RE, title):
+            s += 2
+        if any(k in title for k in SCORE_MONEY):
+            s += 2
+        if any(k in title for k in SCORE_TURNING):
+            s += 1
+    else:
+        if re.search(SCORE_NUM_RE, title):
+            s += 1
     has_weather = any(k in title for k in WEATHER_TERMS)
     has_econ    = has_company or any(k in title for k in ECON_LINK_TERMS)
     if has_weather and not has_econ:
         s -= 2
     if any(k in title for k in PROCEDURAL_TERMS):
         s -= 2
+    if any(k in title for k in TICKER_NOISE_TERMS):
+        # 시황성 기사: 수주·계약 같은 실질 뉴스가 같이 없으면 사실상 탈락점
+        s -= 2 if any(k in title for k in SUBSTANTIVE_TERMS) else 5
     return s
+
+
+def company_key(title):
+    """제목에서 첫 번째로 매칭되는 기업명 (잠식 방지 캡용)"""
+    return next((c for c in SCORE_COMPANIES if c in title), None)
+
+
+def cap_by_company(items, max_per_company=2):
+    """같은 기업이 리스트를 잠식하지 않도록 기업당 최대 N건"""
+    counts = {}
+    kept = []
+    for item in items:
+        key = company_key(item["title"])
+        if key is not None:
+            counts[key] = counts.get(key, 0) + 1
+            if counts[key] > max_per_company:
+                continue
+        kept.append(item)
+    return kept
 
 
 def is_weather_gated(item):
@@ -872,12 +1020,15 @@ def fetch_category(cat):
             return datetime.min.replace(tzinfo=timezone.utc)
         return dt + bonus
 
+    life_mode = cat.get("style") == "life"
     for item in all_items:
-        item["score"] = item_score(item["title"])
+        item["score"] = item_score(item["title"], life_mode=life_mode)
+        item["life_hit"] = any(k in item["title"] for k in LIFE_ANGLE_TERMS) \
+                           or any(k in item["title"] for k in FEATURE_TERMS)
 
     all_items.sort(key=lambda i: (i["score"], source_score_ko(i)), reverse=True)
     quota = cat.get("quota", MAX_PER_CATEGORY)
-    return deduplicate(all_items)[:quota]
+    return cap_by_company(deduplicate(all_items))[:quota]
 
 
 def fetch_econ_radar(max_angled=15, max_others=10):
@@ -892,8 +1043,10 @@ def fetch_econ_radar(max_angled=15, max_others=10):
     for item in all_items:
         item["climate_angle"] = any(k in item["title"] for k in CLIMATE_ANGLE_HINTS)
         item["score"] = item_score(item["title"])
+        item["life_hit"] = any(k in item["title"] for k in LIFE_ANGLE_TERMS) \
+                           or any(k in item["title"] for k in FEATURE_TERMS)
     all_items.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
-    all_items = deduplicate(all_items)
+    all_items = cap_by_company(deduplicate(all_items))
     angled = [i for i in all_items if i["climate_angle"]][:max_angled]
     others = [i for i in all_items if not i["climate_angle"]][:max_others]
     return angled + others
@@ -1145,10 +1298,11 @@ def news_card(item, en=False, show_score=False):
     lang_cls = ' lang-en' if en else ''
     src_html = f'<span class="source">{source}</span>' if source else ""
     score_html = score_badge(item.get("score", 0)) if show_score else ""
+    life_html = '<span title="생활·기획 연결">🌿</span>' if show_score and item.get("life_hit") else ""
     return (
         f'<div class="news-item">'
         f'<div class="news-body">'
-        f'<div class="news-meta">{src_html}<span class="pub-time">{pub}</span>{score_html}</div>'
+        f'<div class="news-meta">{src_html}<span class="pub-time">{pub}</span>{score_html}{life_html}</div>'
         f'<a class="news-title{lang_cls}" href="{link}" target="_blank" rel="noopener">{title}</a>'
         f'</div>'
         f'</div>'
@@ -1462,7 +1616,8 @@ def generate_calendar_tab(calendar_news):
 
 
 def generate_top_picks(categories_data, top_n=10, min_score=3):
-    """카테고리 통합 발제 후보 TOP — 스코어 상위 기사"""
+    """카테고리 통합 발제 후보 TOP — 스코어 상위 기사.
+    잠식 방지: 같은 기업 최대 2건, 같은 카테고리 최대 3건"""
     pool = []
     for cat in categories_data:
         for item in cat["items"]:
@@ -1471,26 +1626,41 @@ def generate_top_picks(categories_data, top_n=10, min_score=3):
     pool.sort(key=lambda x: (x[0]["score"], x[0]["pub_dt"]), reverse=True)
     if not pool:
         return ""
+    picked, co_count, cat_count = [], {}, {}
+    for item, cat in pool:
+        co = company_key(item["title"])
+        if co is not None and co_count.get(co, 0) >= 2:
+            continue
+        if cat_count.get(cat["id"], 0) >= 3:
+            continue
+        picked.append((item, cat))
+        if co is not None:
+            co_count[co] = co_count.get(co, 0) + 1
+        cat_count[cat["id"]] = cat_count.get(cat["id"], 0) + 1
+        if len(picked) >= top_n:
+            break
     rows = ""
-    for item, cat in pool[:top_n]:
+    for item, cat in picked:
         link   = h(item["link"])
         title  = h(item["title"])
         source = h(item.get("source") or "")
         pub    = h(item.get("pub_str") or "")
-        src_html = f'<span class="source">{source}</span>' if source else ""
+        src_html  = f'<span class="source">{source}</span>' if source else ""
+        life_html = ('<span title="생활·기획 연결">🌿</span>'
+                     if item.get("life_hit") else "")
         rows += (
             f'<div class="news-item">'
             f'<div class="news-body">'
             f'<div class="news-meta"><span class="cat-tag">[{h(cat["name"])}]</span>'
             f'{src_html}<span class="pub-time">{pub}</span>'
-            f'{score_badge(item["score"])}</div>'
+            f'{score_badge(item["score"])}{life_html}</div>'
             f'<a class="news-title" href="{link}" target="_blank" rel="noopener">{title}</a>'
             f'</div></div>'
         )
     return (
         f'<div class="top-picks">'
-        f'<div class="top-picks-header">🎯 오늘의 발제 후보 TOP {min(top_n, len(pool))}'
-        f'<span class="top-picks-sub">기업명·금액·전환점 신호 기반 자동 선별</span></div>'
+        f'<div class="top-picks-header">🎯 오늘의 발제 후보 TOP {len(picked)}'
+        f'<span class="top-picks-sub">기업·금액·전환점 + 생활 연결(🌿) 신호 기반 자동 선별</span></div>'
         f'<div class="top-picks-body">{rows}</div>'
         f'</div>'
     )
@@ -1591,10 +1761,12 @@ def generate_en_tab(trusted_items, priority_items):
         source = h(item.get("source") or "")
         pub    = h(item.get("pub_str") or "")
         src_html = f'<span class="source">{source}</span>' if source else ""
+        kr_html = ('<span title="한국 언급 외신">🇰🇷</span>'
+                   if re.search(r"\bKorea", item["title"]) else "")
         return (
             f'<div class="news-item">'
             f'<a class="news-title lang-en" href="{link}" target="_blank" rel="noopener">{title}</a>'
-            f'<div class="news-meta">{src_html}<span class="pub-time">{pub}</span></div>'
+            f'<div class="news-meta">{src_html}<span class="pub-time">{pub}</span>{kr_html}</div>'
             f'</div>'
         )
 
@@ -1798,6 +1970,14 @@ def main():
     print("\n[캘린더뉴스] 수집", file=sys.stderr)
     calendar_news = fetch_calendar_news()
     print(f"  → {len(calendar_news)}건", file=sys.stderr)
+
+    print("\n[출처 보정] 무출처 기사 원문 추적", file=sys.stderr)
+    for lst in ([c["items"] for c in categories_data]
+                + [[i for i in econ_items], calendar_news,
+                   experts_data, policy_data, reporters_data]):
+        enrich_sources(lst)
+    fixed = sum(1 for c in categories_data for i in c["items"] if i.get("source"))
+    print(f"  → 국내 기사 출처 보유 {fixed}건", file=sys.stderr)
 
     html_content = generate_html(
         categories_data, trusted_en_items, priority_en_items,
