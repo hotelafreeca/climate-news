@@ -31,14 +31,14 @@ REQUEST_DELAY = 0.25
 # quota: 카테고리별 노출 건수. 과거 270편 조회수 분석 결과 타율(1만+ 비율)에
 # 따라 차등 배분 — 배터리 35%·기업/투자 19%·지정학 16% vs 기상 0%·라이프 6%
 CATEGORIES = [
-    {"id": "ev",   "name": "전기차·배터리·이차전지",     "color": "#EF7D2E", "quota": 14,
+    {"id": "ev",   "name": "전기차·배터리·이차전지",     "color": "#EF7D2E", "quota": 12,
      "keywords": [
          "전기차 판매 동향", "배터리 3사 투자 실적", "이차전지 캐즘",
          "전기차 화재", "에코프로 주가", "BYD 한국 시장",
          "전고체 배터리", "수소경제", "ESS 시장 전망",
          "휴머노이드 로봇 배터리", "폐배터리 재활용 시장"
      ]},
-    {"id": "re",   "name": "재생에너지 정책·산업",        "color": "#EF7D2E", "quota": 12,
+    {"id": "re",   "name": "재생에너지 정책·산업",        "color": "#EF7D2E", "quota": 10,
      "keywords": [
          "태양광 보급 현황", "재생에너지 목표", "해상풍력 특별법",
          "영농형 태양광", "재생에너지 PPA", "제주도 재생에너지",
@@ -68,13 +68,13 @@ CATEGORIES = [
          "역대급 폭염 원인", "기상이변 극단기후", "해수면 온도 상승",
          "가뭄 홍수 피해", "산불 피해 경제"
      ]},
-    {"id": "geo",  "name": "미중 패권·지정학·에너지 안보", "color": "#EF7D2E", "quota": 12,
+    {"id": "geo",  "name": "미중 패권·지정학·에너지 안보", "color": "#EF7D2E", "quota": 10,
      "keywords": [
          "미중 패권 에너지", "지정학 에너지 안보", "핵심광물 공급망",
          "희토류 수급", "태양광 미중 갈등", "트럼프 기후 정책",
          "중국 탄소배출 감소", "중국 에너지 전환", "핵심광물 수출 통제"
      ]},
-    {"id": "ai",   "name": "AI·데이터센터·전력 수요",      "color": "#EF7D2E", "quota": 12,
+    {"id": "ai",   "name": "AI·데이터센터·전력 수요",      "color": "#EF7D2E", "quota": 10,
      "keywords": [
          "AI 전력 수요", "데이터센터 전력 소비", "우주 태양광",
          "전력망 투자 수혜", "데이터센터 투자 유치", "원전 데이터센터 전력",
@@ -186,7 +186,46 @@ CLIMATE_ANGLE_HINTS = [
     "발전", "조선", "농산물", "곡물", "식량",
 ]
 
-# ── 해외 기후 전문 매체 RSS (레이어1) ────────────────────────
+# ── 국내 기후 전문 매체 (직접 구독) ──────────────────────────
+# 화제 이슈 × 기후 연결(월드컵 폭염, 행사 탄소배출 등)은 이들이 이미 해줌
+KO_MEDIA_FEEDS = [
+    {"url": "https://www.newspenguin.com/rss/allArticle.xml", "source": "뉴스펭귄"},
+    {"url": "https://greenium.kr/feed/",                      "source": "그리니엄"},
+    {"url": "https://www.impacton.net/rss/allArticle.xml",    "source": "임팩트온"},
+    {"url": "https://www.esgeconomy.com/rss/allArticle.xml",  "source": "ESG경제"},
+]
+KO_MEDIA_QUERIES = [
+    # RSS 없는 매체: 구글뉴스 검색 후 소스명 일치 기사만 채택
+    {"query": "뉴스트리 기후", "source": "뉴스트리"},
+]
+
+# ── 화제 키워드 감지 (실검 대체: 구글뉴스 헤드라인 빈출 명사) ──
+TREND_FEEDS = [
+    "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko",
+    "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=ko&gl=KR&ceid=KR:ko",
+    "https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=ko&gl=KR&ceid=KR:ko",
+]
+TREND_STOPWORDS = {
+    "속보", "단독", "영상", "포토", "오늘", "내일", "어제", "뉴스",
+    "기자", "앵커", "종합", "발표", "공개", "논란", "이유", "위해",
+    "위한", "대한", "결과", "전망", "확인", "인터뷰", "현장", "사진",
+    "출시", "공식", "최초", "역대", "사상", "한국", "미국", "중국",
+    "일본", "서울", "정부", "대통령", "국회", "경찰", "검찰", "혐의",
+    "사망", "체포", "구속", "발생", "가능", "지난", "이번", "올해",
+    "관련", "추진", "예정", "시작", "마무리", "돌파", "기록", "상승",
+    "하락", "증가", "감소", "억원", "조원", "만원", "사람", "남성",
+    "여성", "씨가", "그는", "그의", "모습", "이날", "통해", "함께",
+    "내가", "누가", "우리", "당신", "이제", "정말", "진짜", "결국",
+    "다시", "모두", "바로", "어떻게", "첫날", "최고", "화제", "근황",
+    "깜짝", "눈물", "충격", "감동", "포착", "심경", "고백", "해명",
+    "이혼", "결혼", "열애", "재혼", "불륜", "남편", "아내", "아들",
+    "딸", "엄마", "아빠", "감독", "배우", "가수", "출연", "복귀",
+    "데뷔", "은퇴", "선발", "출전", "감독", "코치", "우승", "골",
+    # 제목 안에 박히는 연예·스포츠 매체 브랜드
+    "스타투데이", "스타이슈", "스타뉴스", "디스패치", "텐아시아",
+    "마이데일리", "엑스포츠뉴스", "OSEN", "스포츠조선", "스포츠서울",
+    "일간스포츠", "스포티비뉴스",
+}
 TRUSTED_EN_FEEDS = [
     # ✅ 작동 확인된 피드
     {"url": "https://grist.org/feed/",                                         "source": "Grist"},
@@ -405,6 +444,10 @@ CALENDAR = {
          "title": "중국 전기차 수출 통계 발표 (월별)",
          "memo": "BYD 등 중국 전기차·태양광 수출 추세 — 미중 통상 갈등 소재",
          "keywords": ["중국 전기차 수출", "BYD 수출 통계", "중국 태양광 수출"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "설 연휴 성수품 물가 (2월)",
+         "memo": "차례상 물가 = 기후플레이션 체감 지표 — 과일·수산물 가격과 이상기후 연결",
+         "keywords": ["설 성수품 물가", "차례상 물가", "설 과일 가격"]},
         {"type": "macro",    "label": "거시·실적", "color": "#EF7D2E",
          "title": "엔비디아 실적 (2월 말)",
          "memo": "AI 투자 사이클 가늠자 — 데이터센터 전력 수요·냉각·전력주 연동",
@@ -427,6 +470,10 @@ CALENDAR = {
          "title": "한국 전기차·배터리 전시회 시즌",
          "memo": "국내 배터리·전기차 신제품·투자 발표 집중 시기",
          "keywords": ["배터리 전시회", "전기차 전시회", "배터리 엑스포"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "벚꽃 개화 (3월 말~4월 초)",
+         "memo": "개화 시기 변화 자체가 기후 데이터 — 지역 축제·관광 경제와 연결",
+         "keywords": ["벚꽃 개화 시기", "벚꽃 축제 기후", "개화 평년 비교"]},
         {"type": "macro",    "label": "거시·실적", "color": "#EF7D2E",
          "title": "중국 양회 (3월 초)",
          "memo": "중국 연간 에너지·산업 정책 청사진 — '신삼양'·탄소 목표·전기차 보조금 (히트작 패턴)",
@@ -497,6 +544,10 @@ CALENDAR = {
          "title": "G7 정상회의 (프랑스 에비앙, 6월 15~17일)",
          "memo": "기후재원·핵심광물·에너지 안보 의제 포함 — 프랑스 의장국, 한국 초청국",
          "keywords": ["G7 에비앙 기후", "G7 에너지 안보", "G7 핵심광물"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "북중미 월드컵 (6/11~7/19)",
+         "memo": "폭염 속 경기·열사병 위험·역대 최대 탄소배출 — 화제성 1위 이벤트의 기후 각",
+         "keywords": ["월드컵 폭염", "월드컵 탄소배출", "월드컵 기후"]},
         {"type": "macro",    "label": "거시·실적", "color": "#EF7D2E",
          "title": "FOMC 금리 결정·점도표 (6월 중순)",
          "memo": "상반기 금리 경로 확정 — 에너지 인프라·리츠·전력주 자금 흐름 변곡점",
@@ -519,6 +570,10 @@ CALENDAR = {
          "title": "장마·집중호우 마무리 (6~7월)",
          "memo": "장마 피해 규모 집계 — 보험사 손실·농업 피해·기후플레이션 연동",
          "keywords": ["장마 피해 집계", "집중호우 피해", "장마 보험 손실"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "월드컵 결승 + 여름 휴가철 시작 (7월)",
+         "memo": "월드컵 기후 결산 + 휴가철 항공·여행 탄소, 폭염 관광지 변화",
+         "keywords": ["월드컵 결승", "휴가철 항공 탄소", "폭염 여행지"]},
         {"type": "macro",    "label": "거시·실적", "color": "#EF7D2E",
          "title": "세법개정안 발표 (7월 말)",
          "memo": "에너지 세제·전기차 개소세·탄소 관련 세제 변화 — 소비자 체감 아이템",
@@ -537,6 +592,10 @@ CALENDAR = {
          "title": "태풍 시즌 (8~9월)",
          "memo": "한반도 태풍 영향·보험 손실·농업 피해·인프라 복구 비용",
          "keywords": ["태풍 피해", "태풍 농업 피해", "태풍 보험 손실"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "여름 휴가철 피크 (8월)",
+         "memo": "해외여행 항공 탄소·국내 피서지 폭염·해수욕장 수온 — 생활 밀착 기후 소재",
+         "keywords": ["휴가철 폭염", "해수욕장 수온", "항공 여행 탄소"]},
         {"type": "macro",    "label": "거시·실적", "color": "#EF7D2E",
          "title": "잭슨홀 미팅 (8월 말)",
          "memo": "연준 의장 기조연설 — 금리 사이클 전환 신호와 에너지 전환 금융 비용",
@@ -563,6 +622,10 @@ CALENDAR = {
          "title": "가을 수확기·태풍 시즌 (9~11월)",
          "memo": "이상기후 작물 수급 불안정 — 쌀·배추·과일 가격 상승 소재",
          "keywords": ["가을 수확 이상기후", "쌀 수급", "배추 가격 기상"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "추석 성수품 물가 (9월)",
+         "memo": "차례상 기후플레이션 — 사과·배·수산물 가격과 여름 이상기후 직결",
+         "keywords": ["추석 성수품 물가", "추석 과일 가격", "차례상 물가"]},
         {"type": "macro",    "label": "거시·실적", "color": "#EF7D2E",
          "title": "FOMC 금리 결정·점도표 (9월 중순)",
          "memo": "하반기 금리 향방 — 재생에너지 프로젝트 파이낸싱·그린본드 발행 연동",
@@ -607,6 +670,14 @@ CALENDAR = {
          "title": "첫 한파·대설 (11~12월)",
          "memo": "에너지 수요 급등·난방비·LNG 수급 위기 — 서민 에너지 취약계층 소재",
          "keywords": ["첫 한파", "난방비 급등", "LNG 수급 겨울"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "김장철·수능 시즌 (11월)",
+         "memo": "배추·고춧가루 김장 물가 + 수능 한파 — 계절 생활 기후 소재",
+         "keywords": ["김장 물가 배추", "김장철 가격", "수능 한파"]},
+        {"type": "event",    "label": "빅이벤트",  "color": "#EF7D2E",
+         "title": "블랙프라이데이·광군제 (11월)",
+         "memo": "소비 빅이벤트의 택배·물류 탄소, 패스트패션 반품 폐기물",
+         "keywords": ["블랙프라이데이 소비", "광군제 물류", "택배 탄소 배출"]},
         {"type": "macro",    "label": "거시·실적", "color": "#EF7D2E",
          "title": "미국 중간선거 (2026년 11월 3일)",
          "memo": "IRA·기후 정책 향방 가르는 선거 — 의회 구도 변화와 한국 기업 영향",
@@ -935,6 +1006,12 @@ def jaccard(set_a, set_b):
         return 0.0
     return len(set_a & set_b) / len(set_a | set_b)
 
+def is_same_story(nouns, kept_nouns):
+    """같은 사건 보도 판정: 자카드 0.5+ 또는 공유 명사 3개+"""
+    return any(jaccard(nouns, kn) >= 0.5 or len(nouns & kn) >= 3
+               for kn in kept_nouns)
+
+
 def deduplicate(items):
     seen_urls = set()
     kept = []
@@ -944,12 +1021,31 @@ def deduplicate(items):
         if url in seen_urls:
             continue
         nouns = extract_nouns(item["title"])
-        if any(jaccard(nouns, kn) >= 0.5 for kn in kept_nouns):
+        if is_same_story(nouns, kept_nouns):
             continue
         seen_urls.add(url)
         kept.append(item)
         kept_nouns.append(nouns)
     return kept
+
+
+def dedupe_across_categories(categories_data):
+    """카테고리 간 중복 기사 제거 — 먼저 나온 카테고리에만 남김 (페이지 다이어트)"""
+    seen_urls = set()
+    seen_nouns = []
+    removed = 0
+    for cat in categories_data:
+        kept = []
+        for item in cat["items"]:
+            nouns = extract_nouns(item["title"])
+            if item["link"] in seen_urls or is_same_story(nouns, seen_nouns):
+                removed += 1
+                continue
+            seen_urls.add(item["link"])
+            seen_nouns.append(nouns)
+            kept.append(item)
+        cat["items"] = kept
+    return removed
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1037,6 +1133,36 @@ def cap_by_company(items, max_per_company=2):
     return kept
 
 
+_generic_topic_tokens = None
+
+
+def topic_token_cap(items, max_n=2):
+    """같은 희귀 토픽 단어(엘니뇨 등)가 한 리스트에 3번 이상 반복되지 않게 캡.
+    카테고리 키워드에 들어 있는 일반 단어는 제외"""
+    global _generic_topic_tokens
+    if _generic_topic_tokens is None:
+        s = set()
+        for c in CATEGORIES:
+            for kw in c["keywords"]:
+                s.update(extract_nouns(kw))
+        s.update({"시장", "투자", "산업", "기업", "정부", "한국", "미국",
+                  "중국", "글로벌", "가격", "요금", "수주", "실적", "발표",
+                  "세계", "국내", "최대", "규모", "전망", "올해", "내년"})
+        _generic_topic_tokens = s
+    counts = {}
+    kept = []
+    for item in items:
+        nouns = [n for n in extract_nouns(item["title"])
+                 if len(n) >= 3 and not n.isdigit()
+                 and n not in _generic_topic_tokens]
+        if any(counts.get(n, 0) >= max_n for n in nouns):
+            continue
+        for n in nouns:
+            counts[n] = counts.get(n, 0) + 1
+        kept.append(item)
+    return kept
+
+
 def is_weather_gated(item):
     """날씨 단독 기사 게이트 — 경제 연결어·기업명 없으면 제외
     (과거 데이터: 날씨 단독 아이템 25편 중 1만+ 조회 0편)"""
@@ -1082,7 +1208,106 @@ def fetch_category(cat):
 
     all_items.sort(key=lambda i: (i["score"], source_score_ko(i)), reverse=True)
     quota = cat.get("quota", MAX_PER_CATEGORY)
-    return cap_by_company(deduplicate(all_items))[:quota]
+    return topic_token_cap(cap_by_company(deduplicate(all_items)))[:quota]
+
+
+def fetch_ko_media(max_total=12):
+    """국내 기후 전문 매체 직접 구독 — 최근 3일, 생활 연결 모드 평가"""
+    print("  ▶ [기후 전문 매체] 수집", file=sys.stderr)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=3)
+    all_items = []
+    for feed in KO_MEDIA_FEEDS:
+        got = parse_rss(fetch_url(feed["url"]))
+        for it in got:
+            it["source"] = feed["source"]
+        all_items.extend(got)
+        time.sleep(REQUEST_DELAY)
+    for q in KO_MEDIA_QUERIES:
+        got = parse_rss(fetch_url(google_rss_url(q["query"])))
+        all_items.extend(i for i in got if q["source"] in (i.get("source") or ""))
+        time.sleep(REQUEST_DELAY)
+    all_items = [i for i in all_items
+                 if not is_excluded(i)
+                 and i["pub_dt"] != UNKNOWN_DT and i["pub_dt"] >= cutoff]
+    for it in all_items:
+        it["score"] = item_score(it["title"], life_mode=True)
+        it["life_hit"] = any(k in it["title"] for k in LIFE_ANGLE_TERMS) \
+                         or any(k in it["title"] for k in FEATURE_TERMS)
+    all_items.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
+    return cap_by_company(deduplicate(all_items))[:max_total]
+
+
+def fetch_trending_keywords(top_n=6, min_count=4):
+    """구글뉴스 헤드라인(종합·스포츠·연예) 빈출 명사로 오늘의 화제 키워드 추출"""
+    print("  ▶ [화제 키워드] 헤드라인 분석", file=sys.stderr)
+    from collections import Counter
+    titles = []
+    src_tokens = set()   # 매체명이 키워드로 오인되는 것 방지 (스타투데이 등)
+    for feed in TREND_FEEDS:
+        for i in parse_rss(fetch_url(feed)):
+            titles.append(i["title"])
+            if i.get("source"):
+                src_tokens.update(extract_nouns(i["source"]))
+        time.sleep(REQUEST_DELAY)
+    cnt = Counter()
+    for t in titles:
+        for n in set(extract_nouns(t)):
+            if (n in TREND_STOPWORDS or n in src_tokens
+                    or n.isdigit() or len(n) < 2):
+                continue
+            cnt[n] += 1
+    keywords = [w for w, c in cnt.most_common(30) if c >= min_count][:top_n]
+    # 이번 달 예견된 빅이벤트 키워드를 항상 포함 (표면어가 '체코전'처럼 튀어도
+    # '월드컵'은 늘 감지되도록 — 사용자 의도: 예견 이벤트는 캘린더로 보강)
+    for kw in current_month_event_keywords():
+        if kw not in keywords:
+            keywords.insert(0, kw)
+    print(f"    헤드라인 {len(titles)}건 → 키워드 {keywords}", file=sys.stderr)
+    return keywords
+
+
+def current_month_event_keywords():
+    """이번 달 캘린더 '빅이벤트'의 핵심 토픽어 (월드컵·휴가철 등)"""
+    out = []
+    for ev in CALENDAR.get(datetime.now(KST).month, []):
+        if ev.get("type") != "event":
+            continue
+        # 제목 앞부분에서 기후 수식어를 뺀 핵심 명사구 추출
+        head = re.split(r"[·(]", ev["title"])[0].strip()
+        for token in ("월드컵", "올림픽", "휴가철", "김장", "추석", "설",
+                      "벚꽃", "블랙프라이데이", "광군제", "수능"):
+            if token in head:
+                out.append(token)
+                break   # 이벤트당 토픽어 1개 (월드컵 vs 북중미 월드컵 중복 방지)
+    return out
+
+
+TREND_CLIMATE_TERMS = [
+    "기후", "탄소", "폭염", "친환경", "온실가스", "열사병", "배출",
+    "재생에너지", "이상기후", "환경 파괴", "에너지", "쓰레기", "폐기물",
+]
+
+
+def fetch_trend_climate_cross(keywords, per_kw=3, max_total=10):
+    """화제 키워드 × 기후 교차검색 — '월드컵 + 기후' 식 의도적 연결.
+    구글 OR 쿼리가 느슨하므로 제목에 키워드+기후 용어 둘 다 있어야 채택"""
+    print("  ▶ [화제 × 기후] 교차검색", file=sys.stderr)
+    out = []
+    for kw in keywords:
+        got = parse_rss(fetch_url(google_rss_url(f"{kw} (기후 OR 탄소 OR 폭염 OR 친환경)")))
+        got = [i for i in got
+               if not is_excluded(i) and kw in i["title"]
+               and any(t in i["title"] for t in TREND_CLIMATE_TERMS)]
+        for i in got:
+            i["trend_kw"] = kw
+            i["score"] = item_score(i["title"])
+            i["life_hit"] = any(k in i["title"] for k in LIFE_ANGLE_TERMS) \
+                            or any(k in i["title"] for k in FEATURE_TERMS)
+        got.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
+        # 같은 사건 변형 보도를 먼저 합친 뒤 상위 N건 — 슬롯 잠식 방지
+        out.extend(deduplicate(got)[:per_kw])
+        time.sleep(REQUEST_DELAY)
+    return deduplicate(out)[:max_total]
 
 
 def fetch_econ_radar(max_angled=15, max_others=10):
@@ -1118,7 +1343,7 @@ def fetch_calendar_news(max_total=15):
     return deduplicate(all_items)[:max_total]
 
 
-def fetch_trusted_en_feeds(max_total=20):
+def fetch_trusted_en_feeds(max_total=15):
     """기후 전문 매체 RSS 직접 구독 → 최신순 20건"""
     print("  ▶ [해외-L1] 기후 전문 매체 RSS 수집", file=sys.stderr)
     all_items = []
@@ -1149,7 +1374,7 @@ def source_score_en(item):
     return dt + bonus
 
 
-def fetch_priority_en_news(max_total=50):
+def fetch_priority_en_news(max_total=30):
     """유력 언론 Google RSS site: 필터 수집 → 우선 소스 가중치 정렬 → 50건"""
     print("  ▶ [해외-L2] 유력 언론 Google RSS 수집", file=sys.stderr)
     all_items = []
@@ -1744,8 +1969,8 @@ def generate_news_tab(categories_data, en=False):
     return f'<div class="container">{top_picks}<div class="cat-grid">{cards}</div></div>'
 
 
-def generate_econ_radar_tab(econ_items):
-    """경제 레이더: 기후 각도 연결 후보 / 일반 핫이슈 2개 섹션"""
+def generate_econ_radar_tab(econ_items, trend_items, trend_keywords):
+    """이슈 레이더: 화제×기후 교차 / 경제 기후각도 후보 / 일반 핫이슈"""
     angled = [i for i in econ_items if i.get("climate_angle")]
     others = [i for i in econ_items if not i.get("climate_angle")]
 
@@ -1754,11 +1979,25 @@ def generate_econ_radar_tab(econ_items):
             return '<div class="empty-state">수집된 기사 없음</div>'
         return "".join(news_card(i, show_score=True) for i in items)
 
+    def trend_card(item):
+        kw = h(item.get("trend_kw", ""))
+        base = news_card(item, show_score=True)
+        return base.replace('<div class="news-meta">',
+                            f'<div class="news-meta"><span class="cat-tag">[{kw}]</span>', 1)
+
+    kw_chips = "".join(f'<span class="kw-chip">{h(k)}</span>' for k in trend_keywords)
+    trend_html = ("".join(trend_card(i) for i in trend_items)
+                  if trend_items
+                  else '<div class="empty-state">오늘의 화제 키워드와 기후의 교차 기사 없음</div>')
+
     return (
         f'<div class="container">'
         f'<div class="radar-intro">기후 키워드 밖에서 출발하는 레이어 — '
-        f'지금 핫한 경제 이슈를 기후·에너지 각도로 끌어올 수 있는지 역검토용.</div>'
-        f'<div class="en-section-label">🔗 기후 각도 연결 후보</div>'
+        f'오늘 가장 화제인 키워드와 경제 핫이슈를 기후·에너지 각도로 역검토. '
+        f'오늘의 화제 키워드: {kw_chips}</div>'
+        f'<div class="en-section-label">🔥 오늘의 화제 × 기후</div>'
+        f'<div class="expert-list" style="margin-bottom:24px">{trend_html}</div>'
+        f'<div class="en-section-label">🔗 경제 핫이슈 중 기후 각도 후보</div>'
         f'<div class="expert-list" style="margin-bottom:24px">{section(angled)}</div>'
         f'<div class="en-section-label">📈 일반 핫 경제 이슈</div>'
         f'<div class="expert-list">{section(others)}</div>'
@@ -1869,7 +2108,7 @@ def generate_reporters_tab(reporters_data):
     return f'<div class="container"><div class="expert-list">{items_html}</div></div>'
 
 
-def generate_html(categories_data, trusted_en_items, priority_en_items, experts_data, policy_data, reporters_data, calendar_news, econ_items, today):
+def generate_html(categories_data, trusted_en_items, priority_en_items, experts_data, policy_data, reporters_data, calendar_news, econ_items, trend_items, trend_keywords, today):
     date_str       = today.strftime("%Y년 %m월 %d일")
     time_str       = today.strftime("%H:%M:%S")
     total_ko       = sum(len(c["items"]) for c in categories_data)
@@ -1883,7 +2122,7 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
     cal_tab   = generate_calendar_tab(calendar_news)
     exp_tab   = generate_experts_tab(experts_data, policy_data)
     rep_tab   = generate_reporters_tab(reporters_data)
-    radar_tab = generate_econ_radar_tab(econ_items)
+    radar_tab = generate_econ_radar_tab(econ_items, trend_items, trend_keywords)
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
@@ -1902,7 +2141,7 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
       <span>📅 <strong>{date_str}</strong></span>
       <span>🇰🇷 국내 <strong>{total_ko}건</strong></span>
       <span>🌐 해외 <strong>{total_en}건</strong></span>
-      <span>📡 경제 레이더 <strong>{len(econ_items)}건</strong></span>
+      <span>📡 이슈 레이더 <strong>{len(econ_items) + len(trend_items)}건</strong></span>
       <span>👤 출연자 동향 <strong>{exp_total}건</strong></span>
       <span>✍️ 전문기자 <strong>{reporter_total}건</strong></span>
       <span>🕒 <strong>{time_str}</strong></span>
@@ -1920,7 +2159,7 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
 <nav class="tab-nav">
   <button class="tab-btn active" onclick="showTab('news-ko',this)">🇰🇷 국내뉴스</button>
   <button class="tab-btn"        onclick="showTab('news-en',this)">🌐 해외뉴스</button>
-  <button class="tab-btn"        onclick="showTab('radar',this)">📡 경제 레이더</button>
+  <button class="tab-btn"        onclick="showTab('radar',this)">📡 이슈 레이더</button>
   <button class="tab-btn"        onclick="showTab('experts',this)">👤 출연자 동향</button>
   <button class="tab-btn"        onclick="showTab('reporters',this)">✍️ 전문기자</button>
   <button class="tab-btn"        onclick="showTab('calendar',this)">📅 캘린더</button>
@@ -1991,12 +2230,25 @@ def main():
     print(f"  출력: {output_file}", file=sys.stderr)
     print("=" * 62, file=sys.stderr)
 
+    print("\n[기후 전문 매체] 수집", file=sys.stderr)
+    media_items = fetch_ko_media()
+    print(f"  → {len(media_items)}건", file=sys.stderr)
+
     print("\n[국내뉴스] 카테고리 수집", file=sys.stderr)
-    categories_data = []
+    categories_data = [{"id": "media", "name": "기후 전문 매체",
+                        "color": "#EF7D2E", "items": media_items}]
     for cat in CATEGORIES:
         items = fetch_category(cat)
         print(f"       → {len(items)}건", file=sys.stderr)
         categories_data.append({**cat, "items": items})
+
+    removed = dedupe_across_categories(categories_data)
+    print(f"  → 카테고리 간 중복 {removed}건 제거", file=sys.stderr)
+
+    print("\n[화제 × 기후] 수집", file=sys.stderr)
+    trend_keywords = fetch_trending_keywords()
+    trend_items = fetch_trend_climate_cross(trend_keywords)
+    print(f"  → 교차 기사 {len(trend_items)}건", file=sys.stderr)
 
     print("\n[경제 레이더] 수집", file=sys.stderr)
     econ_items = fetch_econ_radar()
@@ -2027,7 +2279,7 @@ def main():
 
     print("\n[출처 보정] 무출처 기사 원문 추적", file=sys.stderr)
     for lst in ([c["items"] for c in categories_data]
-                + [[i for i in econ_items], calendar_news,
+                + [econ_items, trend_items, calendar_news,
                    experts_data, policy_data, reporters_data]):
         enrich_sources(lst)
     fixed = sum(1 for c in categories_data for i in c["items"] if i.get("source"))
@@ -2036,7 +2288,7 @@ def main():
     html_content = generate_html(
         categories_data, trusted_en_items, priority_en_items,
         experts_data, policy_data, reporters_data, calendar_news,
-        econ_items, today
+        econ_items, trend_items, trend_keywords, today
     )
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html_content)
