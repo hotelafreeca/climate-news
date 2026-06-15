@@ -31,7 +31,7 @@ REQUEST_DELAY = 0.25
 # quota: 카테고리별 노출 건수. 과거 270편 조회수 분석 결과 타율(1만+ 비율)에
 # 따라 차등 배분 — 배터리 35%·기업/투자 19%·지정학 16% vs 기상 0%·라이프 6%
 CATEGORIES = [
-    {"id": "ev",   "name": "전기차·배터리·이차전지",     "color": "#EF7D2E", "quota": 12,
+    {"id": "ev",   "name": "전기차·배터리·이차전지",     "color": "#EF7D2E", "quota": 10,
      "keywords": [
          "전기차 판매 동향", "배터리 3사 투자 실적", "이차전지 캐즘",
          "전기차 화재", "에코프로 주가", "BYD 한국 시장",
@@ -221,6 +221,12 @@ TREND_STOPWORDS = {
     "이혼", "결혼", "열애", "재혼", "불륜", "남편", "아내", "아들",
     "딸", "엄마", "아빠", "감독", "배우", "가수", "출연", "복귀",
     "데뷔", "은퇴", "선발", "출전", "감독", "코치", "우승", "골",
+    # 행정·PR 일반 동사 (특정 토픽 아님)
+    "지원", "유치", "개최", "행사", "참여", "운영", "사업", "협력",
+    "방문", "점검", "대비", "강화", "당부", "체결", "협약", "추진",
+    "확대", "지급", "모집", "선정", "신청", "접수", "안내", "공모",
+    "축제", "캠페인", "교육", "설명", "간담", "회의", "토론",
+    "비주얼", "유튜버", "들어와", "누구", "라며", "면서", "분위기",
     # 제목 안에 박히는 연예·스포츠 매체 브랜드
     "스타투데이", "스타이슈", "스타뉴스", "디스패치", "텐아시아",
     "마이데일리", "엑스포츠뉴스", "OSEN", "스포츠조선", "스포츠서울",
@@ -327,6 +333,9 @@ REPORTERS = [
     {"name": "황덕현", "media": "뉴스1",      "beat": "기후/환경",   "search": "황덕현 뉴스1 기후"},
     {"name": "이재영", "media": "연합뉴스",   "beat": "기후",        "search": "이재영 연합뉴스 기후"},
     {"name": "정종오", "media": "아이뉴스24", "beat": "기후",        "search": "정종오 아이뉴스24 기후"},
+    {"name": "서영민", "media": "KBS",       "beat": "경제/기후",   "search": "서영민 KBS 기자"},
+    {"name": "김승환", "media": "MBC",       "beat": "기후/환경",   "search": "김승환 MBC 기후 환경"},
+    {"name": "반기웅", "media": "경향신문",   "beat": "기후/환경",   "search": "반기웅 경향신문"},
     # 기후 전문 매체·단체
     {"name": "윤지로", "media": "클리프",     "beat": "기후미디어",  "search": "윤지로 클리프"},
     {"name": "선정수", "media": "클리프",     "beat": "기후 팩트체크","search": "선정수 기후"},
@@ -374,12 +383,25 @@ EXCLUDE_SOURCE_PATTERNS = [
     "정책브리핑", "대한민국 정책브리핑", "국가기후위기대응위원회",
     "Vietnam.vn", "vietnam.vn",        # 베트남 한국어 번역 스팸
     "민심뉴스", "bnt뉴스", "bntnews",   # 저품질 다량 매체
+    "fathom", "Fathom Journal",        # 이스라엘 매체 (국내 오분류)
+    "kmrk",                            # 정체불명 .ru
+    "MSN", "msn.com",                  # 집계 사이트 — 원문 언론사 JS 렌더라 추출 불가
 ]
+
+# 국내 뉴스에서 차단할 해외 도메인 TLD (링크 host 기준)
+BLOCKED_TLDS = (".vn", ".ru", ".il", ".cn")
+
+# 집계·포털 사이트 — 원문 언론사로 재추적해야 함 (source가 차 있어도)
+AGGREGATOR_SOURCES = {"MSN", "msn", "네이트", "다음뉴스", "Daum", "Nate"}
 
 # 소스명 표기 교정 (substring 매칭, 소문자 비교)
 SOURCE_RENAME = {
     "thecommoditiesnews": "CNews",
     "seouleconews": "서울이코노미뉴스",
+    "numbers.co.kr": "넘버스",
+    "numbers": "넘버스",
+    "chosunbiz": "조선비즈",
+    "newsroad": "뉴스로드",
 }
 
 EXPERT_EXCLUDE_PATTERNS = [
@@ -949,6 +971,8 @@ def page_press_name(url):
         except UnicodeDecodeError:
             text = page.decode("euc-kr", "replace")
         for pat in (r'<a [^>]*class="medium"[^>]*>([^<]+)</a>',
+                    r'"provider"\s*:\s*\[?\s*\{[^}]*?"name"\s*:\s*"([^"]+)"',
+                    r'"sourceName"\s*:\s*"([^"]+)"',
                     r'<meta property="og:article:author" content="([^"]+)"',
                     r'<meta property="og:site_name" content="([^"]+)"'):
             m = re.search(pat, text)
@@ -962,26 +986,28 @@ def page_press_name(url):
 
 
 def enrich_sources(items):
-    """출처 없는 기사 보정: 구글 리다이렉트를 풀어 원문 URL로 바꾸고,
-    네이트 경유 기사는 원문 언론사명을 추출해 채운다"""
+    """출처 보정: 구글 리다이렉트를 풀어 원문 URL로 바꾸고,
+    네이트·MSN 등 집계 사이트는 원문 언론사명을 추출해 채운다"""
     for item in items:
-        if item.get("source"):
+        src = item.get("source") or ""
+        if src and src not in AGGREGATOR_SOURCES:
             continue
         real = resolve_gnews_url(item["link"])
         if real != item["link"]:
             item["link"] = real
-        host = urllib.parse.urlparse(real).hostname or ""
-        if "nate.com" in host or "daum.net" in host:
+        host = (urllib.parse.urlparse(real).hostname or "").lower()
+        if any(p in host for p in ("nate.com", "daum.net", "msn.com")):
             press = page_press_name(real)
             if press:
                 item["source"] = press
             continue
-        domain = host.removeprefix("www.").removesuffix(".com").removesuffix(".co.kr")
-        for key, pretty in SOURCE_RENAME.items():
-            if key in domain.lower():
-                domain = pretty
-                break
-        if domain and not any(p in domain for p in ("google", "nate", "daum")):
+        domain = (host.removeprefix("www.").removesuffix(".com")
+                  .removesuffix(".co.kr").removesuffix(".kr"))
+        renamed = next((pretty for key, pretty in SOURCE_RENAME.items()
+                        if key in host), None)
+        if renamed:
+            item["source"] = renamed
+        elif domain and not any(p in domain for p in ("google", "nate", "daum", "msn")):
             item["source"] = domain
     return items
 
@@ -1059,11 +1085,11 @@ def is_excluded(item):
         return True
     if any(p in source for p in EXCLUDE_SOURCE_PATTERNS):
         return True
-    # .vn 등 베트남 번역 사이트 전면 차단 (소스명·링크 도메인 양쪽)
-    if re.search(r"\.vn\b", source, re.I):
+    # 해외 도메인 차단 (소스명·링크 host 양쪽)
+    if re.search(r"\.(vn|ru|il|cn)\b", source, re.I):
         return True
-    host = urllib.parse.urlparse(item.get("link", "")).hostname or ""
-    if host.endswith(".vn"):
+    host = (urllib.parse.urlparse(item.get("link", "")).hostname or "").lower()
+    if host.endswith(BLOCKED_TLDS):
         return True
     return False
 
@@ -1211,7 +1237,7 @@ def fetch_category(cat):
     return topic_token_cap(cap_by_company(deduplicate(all_items)))[:quota]
 
 
-def fetch_ko_media(max_total=12):
+def fetch_ko_media(max_total=20):
     """국내 기후 전문 매체 직접 구독 — 최근 3일, 생활 연결 모드 평가"""
     print("  ▶ [기후 전문 매체] 수집", file=sys.stderr)
     cutoff = datetime.now(timezone.utc) - timedelta(days=3)
@@ -1237,7 +1263,7 @@ def fetch_ko_media(max_total=12):
     return cap_by_company(deduplicate(all_items))[:max_total]
 
 
-def fetch_trending_keywords(top_n=6, min_count=4):
+def fetch_trending_keywords(top_n=10, min_count=3):
     """구글뉴스 헤드라인(종합·스포츠·연예) 빈출 명사로 오늘의 화제 키워드 추출"""
     print("  ▶ [화제 키워드] 헤드라인 분석", file=sys.stderr)
     from collections import Counter
@@ -1249,11 +1275,15 @@ def fetch_trending_keywords(top_n=6, min_count=4):
             if i.get("source"):
                 src_tokens.update(extract_nouns(i["source"]))
         time.sleep(REQUEST_DELAY)
+    # 용언 활용형이 명사로 새는 것 방지 (아니다·아냐·했다·온다·없다 등)
+    verb_end = ("다", "냐", "까", "네", "요", "죠", "지", "야", "음", "함",
+                "데", "고", "면", "서", "들", "임")
     cnt = Counter()
     for t in titles:
         for n in set(extract_nouns(t)):
             if (n in TREND_STOPWORDS or n in src_tokens
-                    or n.isdigit() or len(n) < 2):
+                    or n.isdigit() or len(n) < 2
+                    or n.endswith(verb_end)):
                 continue
             cnt[n] += 1
     keywords = [w for w, c in cnt.most_common(30) if c >= min_count][:top_n]
@@ -1288,7 +1318,7 @@ TREND_CLIMATE_TERMS = [
 ]
 
 
-def fetch_trend_climate_cross(keywords, per_kw=3, max_total=10):
+def fetch_trend_climate_cross(keywords, per_kw=4, max_total=16):
     """화제 키워드 × 기후 교차검색 — '월드컵 + 기후' 식 의도적 연결.
     구글 OR 쿼리가 느슨하므로 제목에 키워드+기후 용어 둘 다 있어야 채택"""
     print("  ▶ [화제 × 기후] 교차검색", file=sys.stderr)
@@ -1838,12 +1868,22 @@ body {
   padding: 10px 12px;
 }
 
+/* ── 기후 전문 매체 (하단 전용 섹션) ── */
+.media-section { margin-top: 32px; }
+.media-sub { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 0 40px;
+}
+.media-grid .news-item { padding: 13px 0; }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
   .site-header { padding: 16px 14px 12px; }
   .header-left h1 { font-size: 1.1rem; }
   .tab-btn { font-size: 12px; padding: 11px 6px; }
-  .cat-grid, .cal-wrap { grid-template-columns: 1fr; }
+  .cat-grid, .cal-wrap, .media-grid { grid-template-columns: 1fr; }
   .container { padding: 20px 16px; }
 }
 """
@@ -1947,7 +1987,11 @@ def generate_top_picks(categories_data, top_n=10, min_score=3):
 
 def generate_news_tab(categories_data, en=False):
     cards = ""
+    media_cat = None
     for cat in categories_data:
+        if cat["id"] == "media":      # 전문 매체는 하단 전용 섹션으로 분리
+            media_cat = cat
+            continue
         color = cat["color"]
         items = cat["items"]
         cat_name_display = ("🔔 " if cat["id"] == "tech" and len(items) >= 3 else "") + cat["name"]
@@ -1966,7 +2010,19 @@ def generate_news_tab(categories_data, en=False):
             f'</div>'
         )
     top_picks = generate_top_picks(categories_data)
-    return f'<div class="container">{top_picks}<div class="cat-grid">{cards}</div></div>'
+    media_html = ""
+    if media_cat and media_cat["items"]:
+        rows = "".join(news_card(i, show_score=True) for i in media_cat["items"])
+        media_html = (
+            f'<div class="media-section">'
+            f'<div class="en-section-label">📰 기후 전문 매체 '
+            f'<span class="media-sub">뉴스펭귄·그리니엄·임팩트온·ESG경제 — '
+            f'화제 이슈를 기후 각도로 다루는 전문지</span></div>'
+            f'<div class="media-grid">{rows}</div>'
+            f'</div>'
+        )
+    return (f'<div class="container">{top_picks}'
+            f'<div class="cat-grid">{cards}</div>{media_html}</div>')
 
 
 def generate_econ_radar_tab(econ_items, trend_items, trend_keywords):
