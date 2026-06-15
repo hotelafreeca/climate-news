@@ -72,7 +72,8 @@ CATEGORIES = [
      "keywords": [
          "미중 패권 에너지", "지정학 에너지 안보", "핵심광물 공급망",
          "희토류 수급", "태양광 미중 갈등", "트럼프 기후 정책",
-         "중국 탄소배출 감소", "중국 에너지 전환", "핵심광물 수출 통제"
+         "중국 탄소배출 감소", "중국 에너지 전환", "핵심광물 수출 통제",
+         "호르무즈 유가", "중동 정세 유가", "국제유가 전망", "OPEC 감산"
      ]},
     {"id": "ai",   "name": "AI·데이터센터·전력 수요",      "color": "#EF7D2E", "quota": 10,
      "keywords": [
@@ -121,6 +122,21 @@ SCORE_MONEY = [
 SCORE_TURNING = [
     "최초", "사상", "역대", "첫 ", "전격", "돌파", "반전", "뒤집",
     "급증", "급감", "초읽기", "임박", "본격", "가속",
+]
+# 거시·지정학 빅이슈 신호 — 기업명·돈신호가 없어도 영양가 높은 사건
+# (전쟁 종전, 해협 봉쇄/개방, 제재, 정상회담 등 — 호르무즈류가 묻히던 문제 보정)
+BIG_ISSUE_TERMS = [
+    "전쟁", "종전", "휴전", "정전협정", "봉쇄", "개방", "해협", "금수",
+    "제재", "수출통제", "관세", "정상회담", "회담", "쿠데타", "디폴트",
+    "파산", "국유화", "징발", "횡재세", "보복", "공습", "미사일",
+    "지정학", "감산", "증산", "OPEC", "감세", "탈퇴", "협정", "단교",
+]
+# 에너지·자원 안보 신호 (기후경제 핵심인데 돈신호 사전엔 없던 단어들)
+ENERGY_SEC_TERMS = [
+    "유가", "원유", "국제유가", "천연가스", "LNG", "가스값", "전력난",
+    "정전", "블랙아웃", "공급망", "핵심광물", "희토류", "리튬", "니켈",
+    "구리", "우라늄", "전력 수급", "에너지 안보", "수급 차질", "감산",
+    "호르무즈", "수에즈", "병목",
 ]
 SCORE_NUM_RE = r"\d+(?:[.,]\d+)?\s*(?:조|억|만\s*대|%|퍼센트|달러|원|GW|MW|TWh|kWh|배)"
 WEATHER_TERMS = [
@@ -386,6 +402,7 @@ EXCLUDE_SOURCE_PATTERNS = [
     "fathom", "Fathom Journal",        # 이스라엘 매체 (국내 오분류)
     "kmrk",                            # 정체불명 .ru
     "MSN", "msn.com",                  # 집계 사이트 — 원문 언론사 JS 렌더라 추출 불가
+    "tokenpost", "토큰포스트",          # 링크 깨짐(접근 불가)
 ]
 
 # 국내 뉴스에서 차단할 해외 도메인 TLD (링크 host 기준)
@@ -1116,6 +1133,11 @@ def item_score(title, life_mode=False):
         s += 3
     if any(k in title for k in FEATURE_TERMS):
         s += 2
+    # 거시·지정학 빅이슈 + 에너지 안보 신호는 모드 무관하게 강하게 가산
+    if any(k in title for k in BIG_ISSUE_TERMS):
+        s += 4
+    if any(k in title for k in ENERGY_SEC_TERMS):
+        s += 3
     if not life_mode:
         if has_company:
             s += 3
@@ -1312,31 +1334,51 @@ def current_month_event_keywords():
     return out
 
 
+# 화제 키워드와 교차할 "기후경제" 연결어 — 환경뿐 아니라 에너지·자원·
+# 경제 안보까지 넓게(호르무즈→유가, 전쟁→에너지 연결을 잡기 위함)
 TREND_CLIMATE_TERMS = [
-    "기후", "탄소", "폭염", "친환경", "온실가스", "열사병", "배출",
-    "재생에너지", "이상기후", "환경 파괴", "에너지", "쓰레기", "폐기물",
+    "기후", "탄소", "폭염", "친환경", "온실가스", "열사병", "탄소배출",
+    "재생에너지", "이상기후", "환경", "에너지 전환", "에너지 안보",
+    "쓰레기", "폐기물", "재활용",
+    "유가", "원유", "국제유가", "천연가스", "LNG", "가스값", "전력난",
+    "전기요금", "정전", "공급망", "핵심광물", "희토류", "석유", "원전",
+    "태양광", "풍력", "수소", "전기차", "배터리", "기후플레이션",
 ]
 
 
-def fetch_trend_climate_cross(keywords, per_kw=4, max_total=16):
-    """화제 키워드 × 기후 교차검색 — '월드컵 + 기후' 식 의도적 연결.
-    구글 OR 쿼리가 느슨하므로 제목에 키워드+기후 용어 둘 다 있어야 채택"""
+def title_has_keyword(title, kw):
+    """제목에 키워드가 '단어'로 등장하는지 — 앞 글자가 한글이면 조사 일부로 보고 제외
+    (예: '활동이란'의 '이란'은 거짓양성이므로 배제)"""
+    for m in re.finditer(re.escape(kw), title):
+        if m.start() == 0 or not re.match(r"[가-힣]", title[m.start() - 1]):
+            return True
+    return False
+
+
+def fetch_trend_climate_cross(keywords, per_kw=3, max_total=15, min_score=2):
+    """화제 키워드 × 기후경제 교차검색 — '월드컵+폭염', '이란+유가' 식 연결.
+    제목에 키워드(단어 경계)와 기후경제 연결어가 둘 다 있고, 점수 기준 이상만 채택"""
     print("  ▶ [화제 × 기후] 교차검색", file=sys.stderr)
     out = []
     for kw in keywords:
-        got = parse_rss(fetch_url(google_rss_url(f"{kw} (기후 OR 탄소 OR 폭염 OR 친환경)")))
-        got = [i for i in got
-               if not is_excluded(i) and kw in i["title"]
-               and any(t in i["title"] for t in TREND_CLIMATE_TERMS)]
+        q = f"{kw} (기후 OR 탄소 OR 폭염 OR 친환경 OR 유가 OR 에너지 OR 전력)"
+        got = parse_rss(fetch_url(google_rss_url(q)))
+        kept = []
         for i in got:
+            if is_excluded(i) or not title_has_keyword(i["title"], kw):
+                continue
+            if not any(t in i["title"] for t in TREND_CLIMATE_TERMS):
+                continue
             i["trend_kw"] = kw
             i["score"] = item_score(i["title"])
             i["life_hit"] = any(k in i["title"] for k in LIFE_ANGLE_TERMS) \
                             or any(k in i["title"] for k in FEATURE_TERMS)
-        got.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
-        # 같은 사건 변형 보도를 먼저 합친 뒤 상위 N건 — 슬롯 잠식 방지
-        out.extend(deduplicate(got)[:per_kw])
+            if i["score"] >= min_score:
+                kept.append(i)
+        kept.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
+        out.extend(deduplicate(kept)[:per_kw])   # 키워드당 상위 N (월드컵 도배 방지)
         time.sleep(REQUEST_DELAY)
+    out.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
     return deduplicate(out)[:max_total]
 
 
