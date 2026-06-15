@@ -24,7 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 의존성 설치
+        run: pip install anthropic
+
       - name: 뉴스 수집 실행
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 fetch_news.py
 
       - name: index.html 준비

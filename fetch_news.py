@@ -13,6 +13,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 import html as html_lib
+import json as json_lib
+import os
 import re
 import sys
 import time
@@ -129,14 +131,15 @@ BIG_ISSUE_TERMS = [
     "전쟁", "종전", "휴전", "정전협정", "봉쇄", "개방", "해협", "금수",
     "제재", "수출통제", "관세", "정상회담", "회담", "쿠데타", "디폴트",
     "파산", "국유화", "징발", "횡재세", "보복", "공습", "미사일",
-    "지정학", "감산", "증산", "OPEC", "감세", "탈퇴", "협정", "단교",
+    "지정학", "감세", "탈퇴", "협정", "단교",
+    # 주의: 감산·증산·OPEC 등 에너지 수급 신호는 ENERGY_SEC_TERMS가 담당(중복 가산 방지)
 ]
 # 에너지·자원 안보 신호 (기후경제 핵심인데 돈신호 사전엔 없던 단어들)
 ENERGY_SEC_TERMS = [
     "유가", "원유", "국제유가", "천연가스", "LNG", "가스값", "전력난",
     "정전", "블랙아웃", "공급망", "핵심광물", "희토류", "리튬", "니켈",
-    "구리", "우라늄", "전력 수급", "에너지 안보", "수급 차질", "감산",
-    "호르무즈", "수에즈", "병목",
+    "구리", "우라늄", "전력 수급", "에너지 안보", "수급 차질",
+    "감산", "증산", "OPEC", "호르무즈", "수에즈", "병목",
 ]
 SCORE_NUM_RE = r"\d+(?:[.,]\d+)?\s*(?:조|억|만\s*대|%|퍼센트|달러|원|GW|MW|TWh|kWh|배)"
 WEATHER_TERMS = [
@@ -160,9 +163,10 @@ PROCEDURAL_TERMS = [
 # 특징주·단타성 시황 기사 — 실질 신호(수주·계약 등) 없으면 강한 감점
 TICKER_NOISE_TERMS = [
     "특징주", "상한가", "하한가", "신고가", "급등 마감", "강세 마감",
-    "상승 마감", "하락 마감", "매수세", "순매수", "수급", "테마주",
+    "상승 마감", "하락 마감", "매수세", "순매수", "테마주",
     "관련주", "목표주가", "오늘의 주가", "주가 흐름", "%↑", "%↓",
     "% 상승", "% 하락", "장 초반", "장중",
+    # 주의: '수급'은 '전력 수급'·'수급 차질'(정상 에너지어)과 충돌하므로 제외
 ]
 SUBSTANTIVE_TERMS = [
     "수주", "계약", "실적 발표", "인수", "합병", "투자 유치",
@@ -1285,8 +1289,57 @@ def fetch_ko_media(max_total=20):
     return cap_by_company(deduplicate(all_items))[:max_total]
 
 
+def fetch_briefing_keywords(max_keywords=10):
+    """Claude + 웹검색으로 '오늘의 핵심 경제·에너지·기후 이슈' 키워드를 동적 추출.
+    그날 실제로 중요한 이슈(FOMC·호르무즈·환율 등)를 모델이 판단 — 고정 키워드 사전의
+    사각지대를 메운다. API 키·패키지가 없으면 None을 반환해 호출부가 폴백하도록 한다."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("    [INFO] ANTHROPIC_API_KEY 없음 → 헤드라인 폴백", file=sys.stderr)
+        return None
+    try:
+        import anthropic
+    except ImportError:
+        print("    [WARN] anthropic 패키지 없음 → 헤드라인 폴백", file=sys.stderr)
+        return None
+    today = datetime.now(KST).strftime("%Y년 %m월 %d일")
+    prompt = (
+        f"오늘은 {today}야. 웹을 검색해서 오늘 한국과 글로벌에서 가장 화제이고 중요한 "
+        f"경제·에너지·기후 이슈를 파악해줘. 그리고 '기후로운 경제생활'이라는 기후×경제 "
+        f"방송의 아이템 발굴에 쓸 한국어 뉴스 검색 키워드를 {max_keywords}개 뽑아줘. "
+        f"조건: ① 지금 실제로 화제인 구체적 이슈(예: FOMC 금리, 호르무즈 유가, 환율 급등, "
+        f"반도체 실적, 전력난). ② 각 키워드는 한국 뉴스 검색에 바로 넣을 2~5단어 구절. "
+        f"③ 기후·에너지와 연결 가능한 이슈를 우선하되, 그날 경제 최대 화제도 포함. "
+        f"설명·머리말 없이 JSON 배열 하나만 출력해. 예: [\"호르무즈 유가\", \"FOMC 금리 인하\"]"
+    )
+    tools = [{"type": "web_search_20260209", "name": "web_search"}]
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        msgs = [{"role": "user", "content": prompt}]
+        resp = client.messages.create(model="claude-opus-4-8", max_tokens=1024,
+                                      tools=tools, messages=msgs)
+        guard = 0
+        while resp.stop_reason == "pause_turn" and guard < 5:
+            guard += 1
+            msgs = [{"role": "user", "content": prompt},
+                    {"role": "assistant", "content": resp.content}]
+            resp = client.messages.create(model="claude-opus-4-8", max_tokens=1024,
+                                          tools=tools, messages=msgs)
+        text = "".join(b.text for b in resp.content if b.type == "text")
+        m = re.search(r"\[.*\]", text, re.S)
+        if not m:
+            return None
+        kws = [str(k).strip() for k in json_lib.loads(m.group(0)) if str(k).strip()]
+        kws = kws[:max_keywords]
+        print(f"    Claude 웹검색 키워드: {kws}", file=sys.stderr)
+        return kws or None
+    except Exception as e:
+        print(f"    [WARN] Claude 키워드 추출 실패: {e} → 헤드라인 폴백", file=sys.stderr)
+        return None
+
+
 def fetch_trending_keywords(top_n=10, min_count=3):
-    """구글뉴스 헤드라인(종합·스포츠·연예) 빈출 명사로 오늘의 화제 키워드 추출"""
+    """구글뉴스 헤드라인(종합·스포츠·연예) 빈출 명사로 오늘의 화제 키워드 추출 (폴백용)"""
     print("  ▶ [화제 키워드] 헤드라인 분석", file=sys.stderr)
     from collections import Counter
     titles = []
@@ -1309,29 +1362,8 @@ def fetch_trending_keywords(top_n=10, min_count=3):
                 continue
             cnt[n] += 1
     keywords = [w for w, c in cnt.most_common(30) if c >= min_count][:top_n]
-    # 이번 달 예견된 빅이벤트 키워드를 항상 포함 (표면어가 '체코전'처럼 튀어도
-    # '월드컵'은 늘 감지되도록 — 사용자 의도: 예견 이벤트는 캘린더로 보강)
-    for kw in current_month_event_keywords():
-        if kw not in keywords:
-            keywords.insert(0, kw)
     print(f"    헤드라인 {len(titles)}건 → 키워드 {keywords}", file=sys.stderr)
     return keywords
-
-
-def current_month_event_keywords():
-    """이번 달 캘린더 '빅이벤트'의 핵심 토픽어 (월드컵·휴가철 등)"""
-    out = []
-    for ev in CALENDAR.get(datetime.now(KST).month, []):
-        if ev.get("type") != "event":
-            continue
-        # 제목 앞부분에서 기후 수식어를 뺀 핵심 명사구 추출
-        head = re.split(r"[·(]", ev["title"])[0].strip()
-        for token in ("월드컵", "올림픽", "휴가철", "김장", "추석", "설",
-                      "벚꽃", "블랙프라이데이", "광군제", "수능"):
-            if token in head:
-                out.append(token)
-                break   # 이벤트당 토픽어 1개 (월드컵 vs 북중미 월드컵 중복 방지)
-    return out
 
 
 # 화제 키워드와 교차할 "기후경제" 연결어 — 환경뿐 아니라 에너지·자원·
@@ -2344,7 +2376,10 @@ def main():
     print(f"  → 카테고리 간 중복 {removed}건 제거", file=sys.stderr)
 
     print("\n[화제 × 기후] 수집", file=sys.stderr)
-    trend_keywords = fetch_trending_keywords()
+    # 1순위: Claude 웹검색으로 그날의 핵심 이슈 판단 / 폴백: 헤드라인 빈출 명사
+    trend_keywords = fetch_briefing_keywords()
+    if not trend_keywords:
+        trend_keywords = fetch_trending_keywords()
     trend_items = fetch_trend_climate_cross(trend_keywords)
     print(f"  → 교차 기사 {len(trend_items)}건", file=sys.stderr)
 
