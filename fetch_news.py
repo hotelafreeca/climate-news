@@ -2008,14 +2008,32 @@ def generate_calendar_tab(calendar_news):
     )
 
 
-def generate_top_picks(categories_data, top_n=10, min_score=3):
-    """카테고리 통합 발제 후보 TOP — 스코어 상위 기사.
-    잠식 방지: 같은 기업 최대 2건, 같은 카테고리 최대 3건"""
+def generate_top_picks(categories_data, trend_items=(), econ_items=(), top_n=10, min_score=3):
+    """종합 발제 후보 TOP — 국내 카테고리 + 이슈 레이더(화제×기후·경제 기후각도)
+    + 기후 전문매체를 한 풀에 합쳐 점수 상위로 선별. 대시보드 성격.
+    잠식 방지: 같은 기업 최대 2건, 같은 섹션 최대 3건"""
     pool = []
-    for cat in categories_data:
+    for cat in categories_data:        # 국내 카테고리 + 전문매체(media)
         for item in cat["items"]:
             if item.get("score", 0) >= min_score:
                 pool.append((item, cat))
+    trend_cat = {"id": "trend", "name": "화제×기후", "color": "#EF7D2E"}
+    for item in trend_items:           # 이슈 레이더 — Claude가 잡은 오늘의 핵심 이슈
+        if item.get("score", 0) >= min_score:
+            pool.append((item, trend_cat))
+    radar_cat = {"id": "radar", "name": "경제 레이더", "color": "#EF7D2E"}
+    for item in econ_items:            # 경제 핫이슈 중 기후 각도 후보만
+        if item.get("climate_angle") and item.get("score", 0) >= min_score:
+            pool.append((item, radar_cat))
+
+    # 같은 기사가 여러 섹션에 중복 수집됐을 수 있으니 URL 기준 1회만
+    seen, dedup = set(), []
+    for item, cat in pool:
+        if item["link"] in seen:
+            continue
+        seen.add(item["link"])
+        dedup.append((item, cat))
+    pool = dedup
     pool.sort(key=lambda x: (x[0]["score"], x[0]["pub_dt"]), reverse=True)
     if not pool:
         return ""
@@ -2053,13 +2071,13 @@ def generate_top_picks(categories_data, top_n=10, min_score=3):
     return (
         f'<div class="top-picks">'
         f'<div class="top-picks-header">🎯 오늘의 발제 후보 TOP {len(picked)}'
-        f'<span class="top-picks-sub">기업·금액·전환점 + 생활 연결(🌿) 신호 기반 자동 선별</span></div>'
+        f'<span class="top-picks-sub">국내·이슈레이더·전문매체 통합 — 점수 상위 자동 선별</span></div>'
         f'<div class="top-picks-body">{rows}</div>'
         f'</div>'
     )
 
 
-def generate_news_tab(categories_data, en=False):
+def generate_news_tab(categories_data, en=False, trend_items=(), econ_items=()):
     cards = ""
     media_cat = None
     for cat in categories_data:
@@ -2083,7 +2101,7 @@ def generate_news_tab(categories_data, en=False):
             f'<div class="cat-body">{body}</div>'
             f'</div>'
         )
-    top_picks = generate_top_picks(categories_data)
+    top_picks = generate_top_picks(categories_data, trend_items, econ_items)
     media_html = ""
     if media_cat and media_cat["items"]:
         rows = "".join(news_card(i, show_score=True) for i in media_cat["items"])
@@ -2247,7 +2265,8 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
     reporter_total = len(reporters_data)
     css            = generate_css()
 
-    news_ko   = generate_news_tab(categories_data, en=False)
+    news_ko   = generate_news_tab(categories_data, en=False,
+                                  trend_items=trend_items, econ_items=econ_items)
     news_en   = generate_en_tab(trusted_en_items, priority_en_items)
     cal_tab   = generate_calendar_tab(calendar_news)
     exp_tab   = generate_experts_tab(experts_data, policy_data)
