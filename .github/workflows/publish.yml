@@ -2,8 +2,10 @@ name: 뉴스 수집 및 배포
 
 on:
   schedule:
-    # 자동 갱신은 하루 1회 (비용 절약) — KST 07:00 = UTC 22:00 전일
-    - cron: "0 22 * * *"
+    # 자동 갱신은 하루 1회 (비용 절약) — KST 07:07 = UTC 22:07 전일
+    # 분(分)을 정시 00에서 비켜둠: GitHub cron은 정시에 전 세계 작업이 몰려
+    # 지연·누락이 심함. 5의 배수도 아닌 07분으로 혼잡 회피.
+    - cron: "7 22 * * *"
   workflow_dispatch: {}   # 필요 시 수동 실행(Run workflow)으로 즉시 갱신
 
 permissions:
