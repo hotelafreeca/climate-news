@@ -2243,6 +2243,11 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>기후로운 경제생활 뉴스 모니터링</title>
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;🌿&lt;/text&gt;&lt;/svg&gt;">
+<meta name="apple-mobile-web-app-title" content="기후로운 경제생활">
+<meta property="og:title" content="기후로운 경제생활 뉴스 모니터링">
+<meta property="og:type" content="website">
+<meta property="og:image" content="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;🌿&lt;/text&gt;&lt;/svg&gt;">
 <style>{css}</style>
 </head>
 <body>
