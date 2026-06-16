@@ -188,24 +188,6 @@ FEATURE_TERMS = [
     "단독]", "르포]", "10년 관찰", "보고서",
 ]
 
-# ── 경제 레이더 (기후 키워드 밖 핫 경제 이슈 → 기후 각도 역검토) ──
-# 역대 최고 히트작(쌀·일본 19만, 이더리움 3.9만, 치킨 2.1만 등)은
-# 기후 키워드 밖에서 출발한 아이템 — 사각지대 보완용 레이어
-ECON_RADAR_FEED = ("https://news.google.com/rss/headlines/section/topic/"
-                   "BUSINESS?hl=ko&gl=KR&ceid=KR:ko")
-ECON_RADAR_QUERIES = [
-    "코스피 급등 업종", "반도체 실적 전망", "금리 인하 전망",
-    "유가 전망", "환율 변동", "빅테크 투자 발표", "수주 잭팟",
-    "IPO 상장 대어", "중국 경기 부양", "관세 협상",
-]
-CLIMATE_ANGLE_HINTS = [
-    "에너지", "전력", "전기", "배터리", "광물", "원자재", "공급망",
-    "데이터센터", "유가", "석유", "가스", "원전", "태양광", "풍력",
-    "수소", "탄소", "기후", "전기차", "충전", "구리", "리튬", "니켈",
-    "희토류", "냉각", "냉방", "폐기물", "재활용", "ESS", "송전",
-    "발전", "조선", "농산물", "곡물", "식량",
-]
-
 # ── 국내 기후 전문 매체 (직접 구독) ──────────────────────────
 # 화제 이슈 × 기후 연결(월드컵 폭염, 행사 탄소배출 등)은 이들이 이미 해줌
 KO_MEDIA_FEEDS = [
@@ -1289,53 +1271,59 @@ def fetch_ko_media(max_total=20):
     return cap_by_company(deduplicate(all_items))[:max_total]
 
 
-def fetch_briefing_keywords(max_keywords=10):
-    """Claude + 웹검색으로 '오늘의 핵심 경제·에너지·기후 이슈' 키워드를 동적 추출.
-    그날 실제로 중요한 이슈(FOMC·호르무즈·환율 등)를 모델이 판단 — 고정 키워드 사전의
-    사각지대를 메운다. API 키·패키지가 없으면 None을 반환해 호출부가 폴백하도록 한다."""
+def fetch_econ_briefing(n=8):
+    """Claude + 웹검색으로 '오늘의 핵심 경제뉴스 N건'을 판단·요약하고, 각 항목에
+    기후·에너지 연결 앵글을 한 줄씩 붙인다(claude.ai 브리핑 + 기후 렌즈).
+    반환: (briefing[list of dict], keywords[list]) — 실패 시 ([], None) → 호출부 폴백.
+      briefing 항목: {headline, summary, climate(연결 앵글; 약하면 ''), kw(한국 뉴스 검색어)}
+      keywords: 각 항목의 kw — TOP10 대시보드·교차검색 입력으로 재사용"""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        print("    [INFO] ANTHROPIC_API_KEY 없음 → 헤드라인 폴백", file=sys.stderr)
-        return None
+        print("    [INFO] ANTHROPIC_API_KEY 없음 → 브리핑 생략(헤드라인 폴백)", file=sys.stderr)
+        return [], None
     try:
         import anthropic
     except ImportError:
-        print("    [WARN] anthropic 패키지 없음 → 헤드라인 폴백", file=sys.stderr)
-        return None
+        print("    [WARN] anthropic 패키지 없음 → 브리핑 생략", file=sys.stderr)
+        return [], None
     today = datetime.now(KST).strftime("%Y년 %m월 %d일")
     prompt = (
-        f"오늘은 {today}야. 웹을 검색해서 오늘 한국과 글로벌에서 가장 화제이고 중요한 "
-        f"경제·에너지·기후 이슈를 파악해줘. 그리고 '기후로운 경제생활'이라는 기후×경제 "
-        f"방송의 아이템 발굴에 쓸 한국어 뉴스 검색 키워드를 {max_keywords}개 뽑아줘. "
-        f"조건: ① 지금 실제로 화제인 구체적 이슈(예: FOMC 금리, 호르무즈 유가, 환율 급등, "
-        f"반도체 실적, 전력난). ② 각 키워드는 한국 뉴스 검색에 바로 넣을 2~5단어 구절. "
-        f"③ 기후·에너지와 연결 가능한 이슈를 우선하되, 그날 경제 최대 화제도 포함. "
-        f"설명·머리말 없이 JSON 배열 하나만 출력해. 예: [\"호르무즈 유가\", \"FOMC 금리 인하\"]"
+        f"오늘은 {today}야. 웹을 검색해서 오늘 한국과 글로벌에서 가장 중요한 경제 뉴스 "
+        f"{n}건을 골라줘. 순수 경제(증시·금리·환율·고용 등)와 기후·에너지 이슈를 모두 포함하되, "
+        f"그날 실제로 가장 큰 뉴스 위주로. 각 뉴스마다 다음을 채워:\n"
+        f"- headline: 한 문장 제목\n"
+        f"- summary: 한두 문장 핵심 요약(수치 포함)\n"
+        f"- kw: 한국 뉴스 검색에 바로 넣을 2~3단어 검색어\n"
+        f"- climate: 이 이슈를 '기후로운 경제생활'(기후×경제 방송)에서 어떻게 기후·에너지 "
+        f"각도로 풀지 한 줄. 기후 연결이 정말 약하면 빈 문자열.\n"
+        f"설명·머리말 없이 아래 JSON만 출력:\n"
+        f'{{"briefing":[{{"headline":"","summary":"","kw":"","climate":""}}]}}'
     )
     tools = [{"type": "web_search_20260209", "name": "web_search"}]
     try:
         client = anthropic.Anthropic(api_key=api_key)
         msgs = [{"role": "user", "content": prompt}]
-        resp = client.messages.create(model="claude-opus-4-8", max_tokens=1024,
+        resp = client.messages.create(model="claude-opus-4-8", max_tokens=4096,
                                       tools=tools, messages=msgs)
         guard = 0
         while resp.stop_reason == "pause_turn" and guard < 5:
             guard += 1
             msgs = [{"role": "user", "content": prompt},
                     {"role": "assistant", "content": resp.content}]
-            resp = client.messages.create(model="claude-opus-4-8", max_tokens=1024,
+            resp = client.messages.create(model="claude-opus-4-8", max_tokens=4096,
                                           tools=tools, messages=msgs)
         text = "".join(b.text for b in resp.content if b.type == "text")
-        m = re.search(r"\[.*\]", text, re.S)
+        m = re.search(r"\{.*\}", text, re.S)
         if not m:
-            return None
-        kws = [str(k).strip() for k in json_lib.loads(m.group(0)) if str(k).strip()]
-        kws = kws[:max_keywords]
-        print(f"    Claude 웹검색 키워드: {kws}", file=sys.stderr)
-        return kws or None
+            return [], None
+        briefing = json_lib.loads(m.group(0)).get("briefing", [])
+        briefing = [b for b in briefing if b.get("headline")]
+        kws = [b["kw"].strip() for b in briefing if b.get("kw", "").strip()]
+        print(f"    Claude 경제 브리핑 {len(briefing)}건, 키워드 {kws}", file=sys.stderr)
+        return briefing, (kws or None)
     except Exception as e:
-        print(f"    [WARN] Claude 키워드 추출 실패: {e} → 헤드라인 폴백", file=sys.stderr)
-        return None
+        print(f"    [WARN] Claude 브리핑 실패: {e} → 헤드라인 폴백", file=sys.stderr)
+        return [], None
 
 
 def fetch_trending_keywords(top_n=10, min_count=3):
@@ -1412,27 +1400,6 @@ def fetch_trend_climate_cross(keywords, per_kw=3, max_total=15, min_score=2):
         time.sleep(REQUEST_DELAY)
     out.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
     return deduplicate(out)[:max_total]
-
-
-def fetch_econ_radar(max_angled=15, max_others=10):
-    """경제 레이더: 기후 키워드 밖 핫 경제 이슈 수집 → 기후 각도 후보 표시
-    섹션별 캡 분리 — 각도 후보가 많아도 일반 핫이슈가 잘리지 않도록"""
-    print("  ▶ [경제 레이더] 핫 경제 이슈 수집", file=sys.stderr)
-    all_items = parse_rss(fetch_url(ECON_RADAR_FEED))
-    for kw in ECON_RADAR_QUERIES:
-        all_items.extend(parse_rss(fetch_url(google_rss_url(kw))))
-        time.sleep(REQUEST_DELAY)
-    all_items = [i for i in all_items if not is_excluded(i)]
-    for item in all_items:
-        item["climate_angle"] = any(k in item["title"] for k in CLIMATE_ANGLE_HINTS)
-        item["score"] = item_score(item["title"])
-        item["life_hit"] = any(k in item["title"] for k in LIFE_ANGLE_TERMS) \
-                           or any(k in item["title"] for k in FEATURE_TERMS)
-    all_items.sort(key=lambda i: (i["score"], i["pub_dt"]), reverse=True)
-    all_items = cap_by_company(deduplicate(all_items))
-    angled = [i for i in all_items if i["climate_angle"]][:max_angled]
-    others = [i for i in all_items if not i["climate_angle"]][:max_others]
-    return angled + others
 
 
 def fetch_calendar_news(max_total=15):
@@ -1921,6 +1888,29 @@ body {
   padding: 0; margin-bottom: 24px;
 }
 
+/* ── 오늘의 경제 브리핑 카드 ── */
+.brief-list { background: var(--card); }
+.brief-item {
+  padding: 16px 0; border-bottom: 1px solid var(--border);
+}
+.brief-item:last-child { border-bottom: none; }
+.brief-head {
+  display: block; font-size: 16px; font-weight: 800; color: var(--text);
+  text-decoration: none; line-height: 1.5; margin-bottom: 6px;
+}
+.brief-head:hover { color: var(--accent); text-decoration: underline; }
+.brief-summary { font-size: 13px; color: #333; line-height: 1.6; margin-bottom: 8px; }
+.brief-climate {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  line-height: 1.55; padding: 8px 12px;
+  background: var(--accent-soft); border-left: 3px solid var(--accent);
+}
+.brief-noclimate { font-size: 12px; color: #9e9e9e; }
+.brief-meta {
+  font-size: 11px; color: var(--muted); margin-top: 8px;
+  display: flex; gap: 8px; align-items: center;
+}
+
 /* ── 언론사명 강조 (해외뉴스·전문기자 탭) ── */
 #tab-news-en .source { color: var(--accent); }
 .tag-media { color: var(--accent); }
@@ -2008,23 +1998,19 @@ def generate_calendar_tab(calendar_news):
     )
 
 
-def generate_top_picks(categories_data, trend_items=(), econ_items=(), top_n=10, min_score=3):
-    """종합 발제 후보 TOP — 국내 카테고리 + 이슈 레이더(화제×기후·경제 기후각도)
-    + 기후 전문매체를 한 풀에 합쳐 점수 상위로 선별. 대시보드 성격.
+def generate_top_picks(categories_data, trend_items=(), top_n=10, min_score=3):
+    """종합 발제 후보 TOP — 국내 카테고리 + 기후 전문매체 + 이슈 레이더(오늘의 경제
+    브리핑 키워드로 교차한 기사)를 한 풀에 합쳐 점수 상위로 선별. 대시보드 성격.
     잠식 방지: 같은 기업 최대 2건, 같은 섹션 최대 3건"""
     pool = []
     for cat in categories_data:        # 국내 카테고리 + 전문매체(media)
         for item in cat["items"]:
             if item.get("score", 0) >= min_score:
                 pool.append((item, cat))
-    trend_cat = {"id": "trend", "name": "화제×기후", "color": "#EF7D2E"}
-    for item in trend_items:           # 이슈 레이더 — Claude가 잡은 오늘의 핵심 이슈
+    trend_cat = {"id": "trend", "name": "오늘의 경제", "color": "#EF7D2E"}
+    for item in trend_items:           # 브리핑 키워드 × 기후 교차로 잡힌 실제 기사
         if item.get("score", 0) >= min_score:
             pool.append((item, trend_cat))
-    radar_cat = {"id": "radar", "name": "경제 레이더", "color": "#EF7D2E"}
-    for item in econ_items:            # 경제 핫이슈 중 기후 각도 후보만
-        if item.get("climate_angle") and item.get("score", 0) >= min_score:
-            pool.append((item, radar_cat))
 
     # 같은 기사가 여러 섹션에 중복 수집됐을 수 있으니 URL 기준 1회만
     seen, dedup = set(), []
@@ -2077,7 +2063,7 @@ def generate_top_picks(categories_data, trend_items=(), econ_items=(), top_n=10,
     )
 
 
-def generate_news_tab(categories_data, en=False, trend_items=(), econ_items=()):
+def generate_news_tab(categories_data, en=False, trend_items=()):
     cards = ""
     media_cat = None
     for cat in categories_data:
@@ -2101,7 +2087,7 @@ def generate_news_tab(categories_data, en=False, trend_items=(), econ_items=()):
             f'<div class="cat-body">{body}</div>'
             f'</div>'
         )
-    top_picks = generate_top_picks(categories_data, trend_items, econ_items)
+    top_picks = generate_top_picks(categories_data, trend_items)
     media_html = ""
     if media_cat and media_cat["items"]:
         rows = "".join(news_card(i, show_score=True) for i in media_cat["items"])
@@ -2117,38 +2103,60 @@ def generate_news_tab(categories_data, en=False, trend_items=(), econ_items=()):
             f'<div class="cat-grid">{cards}</div>{media_html}</div>')
 
 
-def generate_econ_radar_tab(econ_items, trend_items, trend_keywords):
-    """이슈 레이더: 화제×기후 교차 / 경제 기후각도 후보 / 일반 핫이슈"""
-    angled = [i for i in econ_items if i.get("climate_angle")]
-    others = [i for i in econ_items if not i.get("climate_angle")]
+def gnews_search_link(kw):
+    """키워드용 구글뉴스 검색 웹 URL (브리핑 카드 클릭 시 해당 이슈 기사 목록)"""
+    return ("https://news.google.com/search?q="
+            + urllib.parse.quote(kw) + "&hl=ko&gl=KR&ceid=KR:ko")
 
-    def section(items):
-        if not items:
-            return '<div class="empty-state">수집된 기사 없음</div>'
-        return "".join(news_card(i, show_score=True) for i in items)
 
-    def trend_card(item):
-        kw = h(item.get("trend_kw", ""))
-        base = news_card(item, show_score=True)
-        return base.replace('<div class="news-meta">',
-                            f'<div class="news-meta"><span class="cat-tag">[{kw}]</span>', 1)
-
-    kw_chips = "".join(f'<span class="kw-chip">{h(k)}</span>' for k in trend_keywords)
-    trend_html = ("".join(trend_card(i) for i in trend_items)
-                  if trend_items
-                  else '<div class="empty-state">오늘의 화제 키워드와 기후의 교차 기사 없음</div>')
+def generate_econ_radar_tab(briefing, trend_items, trend_keywords):
+    """이슈 레이더: Claude가 판단한 '오늘의 경제 브리핑' + 각 항목 기후 연결 앵글.
+    Claude 미작동(폴백) 시 헤드라인 키워드×기후 교차 기사로 대체."""
+    if briefing:
+        cards = ""
+        for b in briefing:
+            head = h(b.get("headline", ""))
+            summ = h(b.get("summary", ""))
+            kw   = b.get("kw", "").strip()
+            link = h(gnews_search_link(kw)) if kw else "#"
+            climate = (b.get("climate") or "").strip()
+            climate_html = (f'<div class="brief-climate">🌿 기후 연결 — {h(climate)}</div>'
+                            if climate
+                            else '<div class="brief-noclimate">· 기후 직접 연결 약함</div>')
+            kw_html = f'<span class="cat-tag">[{h(kw)}]</span>' if kw else ""
+            cards += (
+                f'<div class="brief-item">'
+                f'<a class="brief-head" href="{link}" target="_blank" rel="noopener">{head}</a>'
+                f'<div class="brief-summary">{summ}</div>'
+                f'{climate_html}'
+                f'<div class="brief-meta">{kw_html}'
+                f'<span class="pub-time">구글뉴스에서 보기 →</span></div>'
+                f'</div>'
+            )
+        body = cards
+        intro = ("오늘 가장 큰 경제 뉴스를 Claude가 웹검색으로 추려, 각 이슈를 "
+                 "기후·에너지 각도(🌿)로 어떻게 풀지 한 줄씩 붙였습니다. "
+                 "여기서 출발해 발제로 끌어오는 용도입니다.")
+        label = "📊 오늘의 경제 브리핑 × 기후 앵글"
+    else:
+        # 폴백: 헤드라인 키워드 × 기후 교차 기사
+        def trend_card(item):
+            kw = h(item.get("trend_kw", ""))
+            base = news_card(item, show_score=True)
+            return base.replace('<div class="news-meta">',
+                                f'<div class="news-meta"><span class="cat-tag">[{kw}]</span>', 1)
+        body = ("".join(trend_card(i) for i in trend_items)
+                if trend_items
+                else '<div class="empty-state">수집된 이슈 없음 (Claude 미연결)</div>')
+        kw_chips = "".join(f'<span class="kw-chip">{h(k)}</span>' for k in (trend_keywords or []))
+        intro = f"화제 키워드 × 기후 교차(폴백 모드). 키워드: {kw_chips}"
+        label = "🔥 오늘의 화제 × 기후"
 
     return (
         f'<div class="container">'
-        f'<div class="radar-intro">기후 키워드 밖에서 출발하는 레이어 — '
-        f'오늘 가장 화제인 키워드와 경제 핫이슈를 기후·에너지 각도로 역검토. '
-        f'오늘의 화제 키워드: {kw_chips}</div>'
-        f'<div class="en-section-label">🔥 오늘의 화제 × 기후</div>'
-        f'<div class="expert-list" style="margin-bottom:24px">{trend_html}</div>'
-        f'<div class="en-section-label">🔗 경제 핫이슈 중 기후 각도 후보</div>'
-        f'<div class="expert-list" style="margin-bottom:24px">{section(angled)}</div>'
-        f'<div class="en-section-label">📈 일반 핫 경제 이슈</div>'
-        f'<div class="expert-list">{section(others)}</div>'
+        f'<div class="radar-intro">{intro}</div>'
+        f'<div class="en-section-label">{label}</div>'
+        f'<div class="brief-list">{body}</div>'
         f'</div>'
     )
 
@@ -2256,22 +2264,22 @@ def generate_reporters_tab(reporters_data):
     return f'<div class="container"><div class="expert-list">{items_html}</div></div>'
 
 
-def generate_html(categories_data, trusted_en_items, priority_en_items, experts_data, policy_data, reporters_data, calendar_news, econ_items, trend_items, trend_keywords, today):
+def generate_html(categories_data, trusted_en_items, priority_en_items, experts_data, policy_data, reporters_data, calendar_news, briefing, trend_items, trend_keywords, today):
     date_str       = today.strftime("%Y년 %m월 %d일")
     time_str       = today.strftime("%H:%M:%S")
     total_ko       = sum(len(c["items"]) for c in categories_data)
     total_en       = len(trusted_en_items) + len(priority_en_items)
     exp_total      = len(experts_data) + len(policy_data)
     reporter_total = len(reporters_data)
+    radar_total    = len(briefing) if briefing else len(trend_items)
     css            = generate_css()
 
-    news_ko   = generate_news_tab(categories_data, en=False,
-                                  trend_items=trend_items, econ_items=econ_items)
+    news_ko   = generate_news_tab(categories_data, en=False, trend_items=trend_items)
     news_en   = generate_en_tab(trusted_en_items, priority_en_items)
     cal_tab   = generate_calendar_tab(calendar_news)
     exp_tab   = generate_experts_tab(experts_data, policy_data)
     rep_tab   = generate_reporters_tab(reporters_data)
-    radar_tab = generate_econ_radar_tab(econ_items, trend_items, trend_keywords)
+    radar_tab = generate_econ_radar_tab(briefing, trend_items, trend_keywords)
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
@@ -2290,7 +2298,7 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
       <span>📅 <strong>{date_str}</strong></span>
       <span>🇰🇷 국내 <strong>{total_ko}건</strong></span>
       <span>🌐 해외 <strong>{total_en}건</strong></span>
-      <span>📡 이슈 레이더 <strong>{len(econ_items) + len(trend_items)}건</strong></span>
+      <span>📡 이슈 레이더 <strong>{radar_total}건</strong></span>
       <span>👤 출연자 동향 <strong>{exp_total}건</strong></span>
       <span>✍️ 전문기자 <strong>{reporter_total}건</strong></span>
       <span>🕒 <strong>{time_str}</strong></span>
@@ -2394,18 +2402,14 @@ def main():
     removed = dedupe_across_categories(categories_data)
     print(f"  → 카테고리 간 중복 {removed}건 제거", file=sys.stderr)
 
-    print("\n[화제 × 기후] 수집", file=sys.stderr)
-    # 1순위: Claude 웹검색으로 그날의 핵심 이슈 판단 / 폴백: 헤드라인 빈출 명사
-    trend_keywords = fetch_briefing_keywords()
+    print("\n[오늘의 경제 브리핑] Claude 웹검색", file=sys.stderr)
+    # 1순위: Claude가 오늘의 핵심 경제뉴스 + 기후 앵글 생성 / 폴백: 헤드라인 빈출 키워드
+    briefing, trend_keywords = fetch_econ_briefing()
     if not trend_keywords:
         trend_keywords = fetch_trending_keywords()
+    # 브리핑 키워드로 실제 RSS 기사 교차 수집 → TOP10 대시보드 입력
     trend_items = fetch_trend_climate_cross(trend_keywords)
-    print(f"  → 교차 기사 {len(trend_items)}건", file=sys.stderr)
-
-    print("\n[경제 레이더] 수집", file=sys.stderr)
-    econ_items = fetch_econ_radar()
-    angled = sum(1 for i in econ_items if i.get("climate_angle"))
-    print(f"  → {len(econ_items)}건 (기후 각도 후보 {angled}건)", file=sys.stderr)
+    print(f"  → 브리핑 {len(briefing)}건 / 교차 기사 {len(trend_items)}건", file=sys.stderr)
 
     print("\n[해외뉴스] 수집", file=sys.stderr)
     trusted_en_items = fetch_trusted_en_feeds()
@@ -2431,7 +2435,7 @@ def main():
 
     print("\n[출처 보정] 무출처 기사 원문 추적", file=sys.stderr)
     for lst in ([c["items"] for c in categories_data]
-                + [econ_items, trend_items, calendar_news,
+                + [trend_items, calendar_news,
                    experts_data, policy_data, reporters_data]):
         enrich_sources(lst)
     fixed = sum(1 for c in categories_data for i in c["items"] if i.get("source"))
@@ -2440,14 +2444,14 @@ def main():
     html_content = generate_html(
         categories_data, trusted_en_items, priority_en_items,
         experts_data, policy_data, reporters_data, calendar_news,
-        econ_items, trend_items, trend_keywords, today
+        briefing, trend_items, trend_keywords, today
     )
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     ko = sum(len(c["items"]) for c in categories_data)
     en = len(trusted_en_items) + len(priority_en_items)
-    print(f"\n✅  완료!  국내 {ko}건 + 경제레이더 {len(econ_items)}건 + 해외 {en}건 + 출연자 {len(experts_data)+len(policy_data)}건 + 전문기자 {len(reporters_data)}건 + 캘린더뉴스 {len(calendar_news)}건", file=sys.stderr)
+    print(f"\n✅  완료!  국내 {ko}건 + 경제브리핑 {len(briefing)}건 + 해외 {en}건 + 출연자 {len(experts_data)+len(policy_data)}건 + 전문기자 {len(reporters_data)}건 + 캘린더뉴스 {len(calendar_news)}건", file=sys.stderr)
     print(f"   파일: {output_file}", file=sys.stderr)
     print("=" * 62, file=sys.stderr)
 
