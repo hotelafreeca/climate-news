@@ -195,6 +195,7 @@ KO_MEDIA_FEEDS = [
     {"url": "https://greenium.kr/feed/",                      "source": "그리니엄"},
     {"url": "https://www.impacton.net/rss/allArticle.xml",    "source": "임팩트온"},
     {"url": "https://www.esgeconomy.com/rss/allArticle.xml",  "source": "ESG경제"},
+    {"url": "https://www.greenpostkorea.co.kr/rss/allArticle.xml", "source": "그린포스트코리아"},
 ]
 KO_MEDIA_QUERIES = [
     # RSS 없는 매체: 구글뉴스 검색 후 소스명 일치 기사만 채택
@@ -202,21 +203,34 @@ KO_MEDIA_QUERIES = [
 ]
 
 # ── 화제 × 기후 (평소 기후와 안 엮이던 분야가 기후와 엮일 때 포착) ──
-# 스포츠·음식·생활·문화 등 '기후가 본업이 아닌' 키워드를 기후 용어와 교차검색.
-# 예: "월드컵 폭염", "와인 기후위기", "쌀 기후위기", "프로축구 탄소"
+# 과거 콘텐츠 259편에서 '기후 본업이 아닌데 히트친' 소재를 분야별로 추출.
+# 예: "쌀 기후위기", "치킨 폭염", "월드컵 폭염", "와인 기후변화", "비트코인 탄소"
 SURPRISE_KEYWORDS = [
     # 스포츠·레저
-    "월드컵", "올림픽", "프로축구", "프로야구", "골프", "마라톤", "스키",
+    "월드컵", "올림픽", "야구", "축구", "마라톤", "러닝", "테니스", "골프", "페스티벌",
     # 음식·기호식품·농수산
-    "와인", "맥주", "커피", "치킨", "쌀", "김치", "사과", "감귤",
-    "꿀벌", "오징어", "명태", "초콜릿",
-    # 생활·문화·소비
-    "패션", "의류", "여행", "항공", "부동산", "벚꽃", "단풍", "축제",
-    "게임", "영화", "공연",
+    "쌀", "치킨", "김치", "배추", "커피", "와인", "맥주", "초콜릿", "바나나",
+    "해산물", "해파리", "정어리", "사과", "감귤",
+    # 패션·소비
+    "패스트패션", "의류", "헌옷", "뷰티", "화장품", "물티슈", "텀블러",
+    # 부동산·건설
+    "부동산", "집값", "그린벨트", "싱크홀",
+    # 금융·투자
+    "비트코인", "국부펀드", "국민연금", "보험료",
+    # 보건·생태
+    "모기", "러브버그", "곤충", "반려동물", "미세플라스틱", "감염병",
+    # 기술·우주
+    "우주", "인공위성",
 ]
 CLIMATE_WORDS = [
     "기후", "기후위기", "기후변화", "탄소", "온실가스", "폭염", "온난화",
     "열대야", "이상기후", "친환경", "탄소중립", "탄소배출",
+]
+# 연예·가십 거짓양성 제외 — '폭염'이 관용 표현으로 박힌 화보·공항패션 등 차단
+GOSSIP_EXCLUDE = [
+    "비주얼", "공항", "출국", "입국", "화보", "미모", "일상룩", "근황샷",
+    "포착", "셀카", "열애", "결혼", "이혼", "데뷔", "컴백", "패션쇼",
+    "인형", "심쿵", "movie", "예능", "리즈", "각선미", "몸매",
 ]
 TRUSTED_EN_FEEDS = [
     # ✅ 작동 확인된 피드
@@ -322,6 +336,10 @@ REPORTERS = [
     {"name": "서영민", "media": "KBS",       "beat": "경제/기후",   "search": "서영민 KBS 기자"},
     {"name": "김승환", "media": "MBC",       "beat": "기후/환경",   "search": "김승환 MBC 기후 환경"},
     {"name": "반기웅", "media": "경향신문",   "beat": "기후/환경",   "search": "반기웅 경향신문"},
+    {"name": "김광우", "media": "헤럴드경제", "beat": "금융/기후",   "search": "김광우 헤럴드경제"},
+    {"name": "김규원", "media": "한겨레",     "beat": "기후/환경",   "search": "김규원 한겨레"},
+    {"name": "강찬수", "media": "에너지경제", "beat": "환경/에너지", "search": "강찬수 에너지경제"},
+    {"name": "김승환", "media": "세계일보",   "beat": "기후/환경",   "search": "김승환 세계일보 기후"},
     # 기후 전문 매체·단체
     {"name": "윤지로", "media": "클리프",     "beat": "기후미디어",  "search": "윤지로 클리프"},
     {"name": "선정수", "media": "클리프",     "beat": "기후 팩트체크","search": "선정수 기후"},
@@ -389,6 +407,8 @@ SOURCE_RENAME = {
     "numbers": "넘버스",
     "chosunbiz": "조선비즈",
     "newsroad": "뉴스로드",
+    "ainews1": "독립신문",
+    "sportsseoul": "스포츠서울",
 }
 
 EXPERT_EXCLUDE_PATTERNS = [
@@ -1331,6 +1351,9 @@ def fetch_surprise_climate(per_kw=1, max_total=12):
                 continue
             if not any(c in i["title"] for c in CLIMATE_WORDS):
                 continue
+            # 연예·가십 기사 제외 (폭염이 관용구로 박힌 화보·공항패션 등)
+            if any(g in i["title"] for g in GOSSIP_EXCLUDE):
+                continue
             i["surprise_kw"] = kw
             i["score"] = item_score(i["title"])
             kept.append(i)
@@ -1831,8 +1854,15 @@ body {
 .brief-list { background: var(--card); }
 .brief-item {
   padding: 16px 0; border-bottom: 1px solid var(--border);
+  display: flex; gap: 14px; align-items: baseline;
 }
 .brief-item:last-child { border-bottom: none; }
+.brief-rank {
+  flex-shrink: 0; width: 26px; text-align: center;
+  font-size: 18px; font-weight: 800; color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.brief-body { flex: 1; min-width: 0; }
 .brief-head {
   display: block; font-size: 16px; font-weight: 800; color: var(--text);
   text-decoration: none; line-height: 1.5; margin-bottom: 6px;
@@ -2041,7 +2071,7 @@ def generate_radar_tab(categories_data, briefing, surprise_items):
     # 2) 오늘의 경제 브리핑 TOP10 (Claude 웹검색)
     if briefing:
         cards = ""
-        for b in briefing:
+        for rank, b in enumerate(briefing, 1):
             head = h(b.get("headline", ""))
             summ = h(b.get("summary", ""))
             kw   = b.get("kw", "").strip()
@@ -2049,11 +2079,13 @@ def generate_radar_tab(categories_data, briefing, surprise_items):
             kw_html = f'<span class="cat-tag">[{h(kw)}]</span>' if kw else ""
             cards += (
                 f'<div class="brief-item">'
+                f'<span class="brief-rank">{rank}</span>'
+                f'<div class="brief-body">'
                 f'<a class="brief-head" href="{link}" target="_blank" rel="noopener">{head}</a>'
                 f'<div class="brief-summary">{summ}</div>'
                 f'<div class="brief-meta">{kw_html}'
                 f'<span class="pub-time">구글뉴스에서 보기 →</span></div>'
-                f'</div>'
+                f'</div></div>'
             )
         brief_body = cards
     else:
