@@ -1303,14 +1303,14 @@ def fetch_econ_briefing(n=10):
     try:
         client = anthropic.Anthropic(api_key=api_key)
         msgs = [{"role": "user", "content": prompt}]
-        resp = client.messages.create(model="claude-opus-4-8", max_tokens=4096,
+        resp = client.messages.create(model="claude-sonnet-4-6", max_tokens=4096,
                                       tools=tools, messages=msgs)
         guard = 0
         while resp.stop_reason == "pause_turn" and guard < 5:
             guard += 1
             msgs = [{"role": "user", "content": prompt},
                     {"role": "assistant", "content": resp.content}]
-            resp = client.messages.create(model="claude-opus-4-8", max_tokens=4096,
+            resp = client.messages.create(model="claude-sonnet-4-6", max_tokens=4096,
                                           tools=tools, messages=msgs)
         text = "".join(b.text for b in resp.content if b.type == "text")
         m = re.search(r"\{.*\}", text, re.S)
