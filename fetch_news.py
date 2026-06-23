@@ -1304,54 +1304,37 @@ def fetch_ko_media(max_total=20):
     return cap_by_company(deduplicate(all_items))[:max_total]
 
 
+BRIEFING_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "briefing.json")
+BRIEFING_DATE = ""   # load 시 채워지는 브리핑 기준일(YYYY-MM-DD)
+
+
 def fetch_econ_briefing(n=10):
-    """Claude + 웹검색으로 '오늘의 핵심 경제뉴스 TOP N'을 판단·요약(claude.ai 브리핑).
-    반환: briefing[list of dict] — 실패 시 []
-      항목: {headline, summary, kw(한국 뉴스 검색어)}"""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        print("    [INFO] ANTHROPIC_API_KEY 없음 → 브리핑 생략", file=sys.stderr)
-        return []
+    """오늘의 경제 브리핑 — briefing.json에서 로드 (API 비용 0원).
+    Claude 구독으로 작성한 브리핑을 파일로 커밋해두면 빌드 때 읽어 렌더한다.
+    파일 형식:
+      {"date": "YYYY-MM-DD",
+       "briefing": [{"headline": "", "summary": "", "kw": ""}, ...]}
+    반환: [{headline, summary, kw}] — 없으면 []"""
+    global BRIEFING_DATE
     try:
-        import anthropic
-    except ImportError:
-        print("    [WARN] anthropic 패키지 없음 → 브리핑 생략", file=sys.stderr)
+        with open(BRIEFING_FILE, encoding="utf-8") as f:
+            data = json_lib.load(f)
+    except FileNotFoundError:
+        print("    [INFO] briefing.json 없음 → 브리핑 비움", file=sys.stderr)
         return []
-    today = datetime.now(KST).strftime("%Y년 %m월 %d일")
-    prompt = (
-        f"오늘은 {today}야. 웹을 검색해서 오늘 한국과 글로벌에서 가장 중요한 경제 뉴스 "
-        f"TOP {n}을 골라줘. 증시·금리·환율·고용·기업·에너지 등 그날 실제로 가장 큰 뉴스 위주로, "
-        f"중요도 순으로 정렬해. 각 뉴스마다:\n"
-        f"- headline: 한 문장 제목\n"
-        f"- summary: 한두 문장 핵심 요약(수치 포함)\n"
-        f"- kw: 한국 뉴스 검색에 바로 넣을 2~3단어 검색어\n"
-        f"설명·머리말 없이 아래 JSON만 출력:\n"
-        f'{{"briefing":[{{"headline":"","summary":"","kw":""}}]}}'
-    )
-    tools = [{"type": "web_search_20260209", "name": "web_search"}]
-    try:
-        client = anthropic.Anthropic(api_key=api_key)
-        msgs = [{"role": "user", "content": prompt}]
-        resp = client.messages.create(model="claude-sonnet-4-6", max_tokens=4096,
-                                      tools=tools, messages=msgs)
-        guard = 0
-        while resp.stop_reason == "pause_turn" and guard < 5:
-            guard += 1
-            msgs = [{"role": "user", "content": prompt},
-                    {"role": "assistant", "content": resp.content}]
-            resp = client.messages.create(model="claude-sonnet-4-6", max_tokens=4096,
-                                          tools=tools, messages=msgs)
-        text = "".join(b.text for b in resp.content if b.type == "text")
-        m = re.search(r"\{.*\}", text, re.S)
-        if not m:
-            return []
-        briefing = [b for b in json_lib.loads(m.group(0)).get("briefing", [])
-                    if b.get("headline")][:n]
-        print(f"    Claude 경제 브리핑 {len(briefing)}건", file=sys.stderr)
-        return briefing
     except Exception as e:
-        print(f"    [WARN] Claude 브리핑 실패: {e}", file=sys.stderr)
+        print(f"    [WARN] briefing.json 읽기 실패: {e}", file=sys.stderr)
         return []
+    BRIEFING_DATE = str(data.get("date", "")).strip()
+    items = [b for b in data.get("briefing", []) if b.get("headline")][:n]
+    today = datetime.now(KST).strftime("%Y-%m-%d")
+    if BRIEFING_DATE and BRIEFING_DATE != today:
+        print(f"    [INFO] 브리핑 기준일 {BRIEFING_DATE} ≠ 오늘 {today} — 갱신 권장",
+              file=sys.stderr)
+    print(f"    경제 브리핑 {len(items)}건 (기준일 {BRIEFING_DATE or '미상'})",
+          file=sys.stderr)
+    return items
 
 
 def title_has_keyword(title, kw):
@@ -2118,8 +2101,8 @@ def generate_radar_tab(categories_data, briefing, surprise_items):
             )
         brief_body = cards
     else:
-        brief_body = ('<div class="empty-state">Claude 미연결 — 브리핑 없음 '
-                      '(ANTHROPIC_API_KEY 확인)</div>')
+        brief_body = ('<div class="empty-state">오늘 경제 브리핑이 아직 준비되지 '
+                      '않았습니다 — 곧 갱신됩니다</div>')
 
     # 3) 화제 × 기후 (의외 키워드 × 기후)
     def surprise_card(item):
@@ -2137,7 +2120,7 @@ def generate_radar_tab(categories_data, briefing, surprise_items):
         f'발제 후보·경제 브리핑·화제×기후를 모아 발제 출발점으로 씁니다.</div>'
         f'{top_picks}'
         f'<div class="en-section-label" style="margin-top:32px">📊 오늘의 경제 브리핑 TOP {len(briefing) if briefing else 0}'
-        f'<span class="media-sub"> — Claude 웹검색이 추린 오늘 최대 경제 뉴스</span></div>'
+        f'<span class="media-sub"> — {(BRIEFING_DATE + " 기준 · ") if BRIEFING_DATE else ""}오늘 최대 경제 뉴스</span></div>'
         f'<div class="brief-list">{brief_body}</div>'
         f'<div class="en-section-label" style="margin-top:32px">🔥 화제 × 기후'
         f'<span class="media-sub"> — 평소 기후와 안 엮이던 분야(스포츠·음식·생활)가 기후와 만난 기사</span></div>'
@@ -2392,7 +2375,7 @@ def main():
     removed = dedupe_across_categories(categories_data)
     print(f"  → 카테고리 간 중복 {removed}건 제거", file=sys.stderr)
 
-    print("\n[오늘의 경제 브리핑] Claude 웹검색", file=sys.stderr)
+    print("\n[오늘의 경제 브리핑] briefing.json 로드", file=sys.stderr)
     briefing = fetch_econ_briefing()
 
     print("\n[화제 × 기후] 의외 키워드 교차", file=sys.stderr)

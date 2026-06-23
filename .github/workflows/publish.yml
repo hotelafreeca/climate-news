@@ -6,7 +6,9 @@ on:
     # 분(分)을 정시 00에서 비켜둠: GitHub cron은 정시에 전 세계 작업이 몰려
     # 지연·누락이 심함. 5의 배수도 아닌 07분으로 혼잡 회피.
     - cron: "7 22 * * *"
-  workflow_dispatch: {}   # 필요 시 수동 실행(Run workflow)으로 즉시 갱신
+  push:
+    branches: [main]        # briefing.json 등 갱신 푸시 시 즉시 재배포(public repo라 Actions 무료)
+  workflow_dispatch: {}     # 필요 시 수동 실행(Run workflow)으로 즉시 갱신
 
 permissions:
   contents: read
@@ -24,12 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 의존성 설치
-        run: pip install anthropic
-
       - name: 뉴스 수집 실행
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        # 브리핑은 briefing.json에서 읽음 — 외부 API·키 불필요(전부 표준 라이브러리)
         run: python3 fetch_news.py
 
       - name: index.html 준비
