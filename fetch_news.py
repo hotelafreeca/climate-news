@@ -2305,9 +2305,12 @@ def generate_html(categories_data, trusted_en_items, priority_en_items, experts_
 <div class="toast" id="toast"></div>
 
 <script>
-// GitHub Pages 등 정적 호스팅에서는 /refresh 서버가 없으므로 버튼 숨김
-if (location.hostname.endsWith('github.io')) {{
-  document.getElementById('refreshBtn').style.display = 'none';
+// 정적 호스팅(GitHub Pages/file)에는 /refresh 백엔드가 없음 →
+// 버튼을 숨기지 않고, GitHub Actions 수동 실행 페이지로 연결(거기서 Run workflow)
+var IS_STATIC = location.hostname.endsWith('github.io') || location.protocol === 'file:';
+var ACTIONS_URL = 'https://github.com/hotelafreeca/climate-news/actions/workflows/publish.yml';
+if (IS_STATIC) {{
+  document.getElementById('refreshBtn').title = 'GitHub Actions에서 Run workflow 실행 → 약 3분 후 반영';
 }}
 
 function showTab(name, btn) {{
@@ -2325,6 +2328,11 @@ function showToast(msg, duration) {{
 }}
 
 async function doRefresh() {{
+  if (IS_STATIC) {{
+    window.open(ACTIONS_URL, '_blank', 'noopener');
+    showToast("GitHub Actions에서 'Run workflow'를 누르면 갱신됩니다 (~3분 후 반영)", 5000);
+    return;
+  }}
   const btn = document.getElementById('refreshBtn');
   const lbl = btn.querySelector('.btn-label');
   btn.classList.add('loading');
