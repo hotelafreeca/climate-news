@@ -318,6 +318,7 @@ EXPERTS = [
     {"name": "개러스 위어","role": "주한영국부대사",                  "tag": "국제·영국",  "search": "개러스 위어 영국대사"},
     {"name": "김현권",    "role": "쌀·농업 전문가",                   "tag": "농업·식량",  "search": "김현권 농업 식량"},
     {"name": "윤지로",    "role": "기후 미디어 클리프 대표",          "tag": "기후미디어", "search": "윤지로 기후미디어"},
+    {"name": "손현정",    "role": "유안타증권",                       "tag": "증권·투자",  "search": "손현정 유안타증권"},
 ]
 
 # ── 환경전문기자 목록 ─────────────────────────────────────────
@@ -391,10 +392,13 @@ EXCLUDE_SOURCE_PATTERNS = [
     "kmrk",                            # 정체불명 .ru
     "MSN", "msn.com",                  # 집계 사이트 — 원문 언론사 JS 렌더라 추출 불가
     "tokenpost", "토큰포스트",          # 링크 깨짐(접근 불가)
+    "Sortir à Paris", "sortiraparis",  # 프랑스 행사정보 사이트 (국내 오분류)
+    "VOI.id", "voi.id",                # 인도네시아 매체 (국내 오분류)
+    "CoinDesk", "coindesk",            # 미국 크립토 매체 (국내 오분류)
 ]
 
 # 국내 뉴스에서 차단할 해외 도메인 TLD (링크 host 기준)
-BLOCKED_TLDS = (".vn", ".ru", ".il", ".cn")
+BLOCKED_TLDS = (".vn", ".ru", ".il", ".cn", ".id")
 
 # 집계·포털 사이트 — 원문 언론사로 재추적해야 함 (source가 차 있어도)
 AGGREGATOR_SOURCES = {"MSN", "msn", "네이트", "다음뉴스", "Daum", "Nate"}
@@ -409,6 +413,14 @@ SOURCE_RENAME = {
     "newsroad": "뉴스로드",
     "ainews1": "독립신문",
     "sportsseoul": "스포츠서울",
+    "fetv": "FETV",
+    "kyongbuk": "경북일보",
+    "smartbizn": "스마트비즈",
+    "car.withnews": "더위드카",
+    "wowglobal": "와우글로벌",
+    "polinews": "폴리뉴스",                    # "폴리뉴스 Polinews" 등
+    "오승혁": "더팩트",                         # 더팩트 칼럼 "오승혁의 '현장'"
+    "경남대학교 교육방송국": "한국건설신문",      # 오분류 소스 교정
 }
 
 EXPERT_EXCLUDE_PATTERNS = [
@@ -431,6 +443,14 @@ NOT_PRESS_TOKENS = {
     "사설", "인터뷰", "종합", "전문", "현장", "오늘의 날씨", "날씨",
     "퀴즈", "카드뉴스", "팩트체크", "그래픽",
 }
+
+# 소스명 양끝의 장식용 특수문자 제거 (":: 위즈경제 ::" → "위즈경제")
+_SRC_DECOR = "：:·•※○●◆◇▶▷◀◁■□▪▫★☆=~|/\\[](){}<>「」『』【】〔〕“”‘’\"'–—_-"
+SRC_DECOR_RE = re.compile(
+    r"^[%s\s]+|[%s\s]+$" % (re.escape(_SRC_DECOR), re.escape(_SRC_DECOR)))
+
+# "○○의 '△△'" 형태의 칼럼·코너명을 매체명으로 오인한 경우 탐지 ("오승혁의 '현장'" 등)
+COLUMN_NAME_RE = re.compile(r"의\s*['\"‘’“”「『【]")
 
 # ── 콘텐츠 캘린더 ─────────────────────────────────────────────
 CALENDAR = {
@@ -910,10 +930,19 @@ def parse_rss(data):
         if source in PORTAL_SOURCES or source in NOT_PRESS_TOKENS:
             source = ""
 
+        # 양끝 장식용 특수문자 제거 (":: 위즈경제 ::" → "위즈경제")
+        if source:
+            source = SRC_DECOR_RE.sub("", source)
+
         for key, pretty in SOURCE_RENAME.items():
             if key in source.lower():
                 source = pretty
                 break
+
+        # 칼럼·코너명을 매체명으로 오인한 경우 버림 ("오승혁의 '현장'" 등)
+        # SOURCE_RENAME으로 매체명이 확정된 건은 위에서 이미 교정되어 통과
+        if source and COLUMN_NAME_RE.search(source):
+            source = ""
 
         pub_dt = parse_date(pub_str)
 
@@ -1093,7 +1122,7 @@ def is_excluded(item):
     if any(p in source for p in EXCLUDE_SOURCE_PATTERNS):
         return True
     # 해외 도메인 차단 (소스명·링크 host 양쪽)
-    if re.search(r"\.(vn|ru|il|cn)\b", source, re.I):
+    if re.search(r"\.(vn|ru|il|cn|id)\b", source, re.I):
         return True
     host = (urllib.parse.urlparse(item.get("link", "")).hostname or "").lower()
     if host.endswith(BLOCKED_TLDS):
