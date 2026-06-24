@@ -2,10 +2,11 @@ name: 뉴스 수집 및 배포
 
 on:
   schedule:
-    # 자동 갱신은 하루 1회 (비용 절약) — KST 07:07 = UTC 22:07 전일
-    # 분(分)을 정시 00에서 비켜둠: GitHub cron은 정시에 전 세계 작업이 몰려
-    # 지연·누락이 심함. 5의 배수도 아닌 07분으로 혼잡 회피.
-    - cron: "7 22 * * *"
+    # 자동 갱신 하루 2회 (public repo라 Actions 무료·무제한) — 뉴스만 새로 수집,
+    # 브리핑(briefing.json)은 마지막에 저장된 것 유지. 분(分)을 정시 00에서 비켜
+    # 혼잡(지연·누락) 회피. GitHub schedule은 best-effort라 실제 시각은 ±수십분 흔들림.
+    - cron: "7 22 * * *"   # KST 07:07 (UTC 22:07 전일)
+    - cron: "7 5 * * *"    # KST 14:07 (UTC 05:07 당일)
   push:
     branches: [main]        # briefing.json 등 갱신 푸시 시 즉시 재배포(public repo라 Actions 무료)
   workflow_dispatch: {}     # 필요 시 수동 실행(Run workflow)으로 즉시 갱신
