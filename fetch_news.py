@@ -395,10 +395,11 @@ EXCLUDE_SOURCE_PATTERNS = [
     "Sortir à Paris", "sortiraparis",  # 프랑스 행사정보 사이트 (국내 오분류)
     "VOI.id", "voi.id",                # 인도네시아 매체 (국내 오분류)
     "CoinDesk", "coindesk",            # 미국 크립토 매체 (국내 오분류)
+    "notizie.it", "notizie",           # 이탈리아 매체 (국내 오분류)
 ]
 
 # 국내 뉴스에서 차단할 해외 도메인 TLD (링크 host 기준)
-BLOCKED_TLDS = (".vn", ".ru", ".il", ".cn", ".id")
+BLOCKED_TLDS = (".vn", ".ru", ".il", ".cn", ".id", ".it")
 
 # 집계·포털 사이트 — 원문 언론사로 재추적해야 함 (source가 차 있어도)
 AGGREGATOR_SOURCES = {"MSN", "msn", "네이트", "다음뉴스", "Daum", "Nate"}
@@ -421,6 +422,8 @@ SOURCE_RENAME = {
     "polinews": "폴리뉴스",                    # "폴리뉴스 Polinews" 등
     "오승혁": "더팩트",                         # 더팩트 칼럼 "오승혁의 '현장'"
     "경남대학교 교육방송국": "한국건설신문",      # 오분류 소스 교정
+    "thefairnews": "더페어뉴스",
+    "2news": "에너지뉴스",                       # 2news.co.kr
 }
 
 EXPERT_EXCLUDE_PATTERNS = [
