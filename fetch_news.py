@@ -2316,12 +2316,28 @@ if (IS_STATIC) {{
   document.getElementById('refreshBtn').title = 'GitHub Actions에서 Run workflow 실행 → 약 3분 후 반영';
 }}
 
-function showTab(name, btn) {{
+function activateTab(name) {{
+  var tab = document.getElementById('tab-' + name);
+  if (!tab) return;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
+  tab.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(function(b) {{
+    var oc = b.getAttribute('onclick') || '';
+    if (oc.indexOf("'" + name + "'") >= 0) b.classList.add('active');
+  }});
+  try {{ sessionStorage.setItem('activeTab', name); }} catch(e) {{}}
 }}
+function showTab(name, btn) {{ activateTab(name); }}
+
+// 열어둔 탭이 멈춰 보이지 않도록 30분마다 자동 새로고침(보던 탭은 유지)
+(function() {{
+  try {{
+    var saved = sessionStorage.getItem('activeTab');
+    if (saved && document.getElementById('tab-' + saved)) activateTab(saved);
+  }} catch(e) {{}}
+  setInterval(function() {{ location.reload(); }}, 1800000);
+}})();
 
 function showToast(msg, duration) {{
   const t = document.getElementById('toast');
