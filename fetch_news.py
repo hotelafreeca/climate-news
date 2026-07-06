@@ -424,6 +424,9 @@ SOURCE_RENAME = {
     "경남대학교 교육방송국": "한국건설신문",      # 오분류 소스 교정
     "thefairnews": "더페어뉴스",
     "2news": "에너지뉴스",                       # 2news.co.kr
+    "sisaon": "시사오늘",
+    "naewaynews": "내외신문",
+    "catchnews": "CatchNews",
 }
 
 EXPERT_EXCLUDE_PATTERNS = [
@@ -1453,6 +1456,10 @@ def fetch_experts(experts):
             and i["pub_dt"] >= cutoff
             and not is_excluded(i)
             and not is_expert_excluded(i)
+            # 출연자 이름이 제목에 '단어'로 실제 등장해야 함 — 구글이 흔한 단어를 품은
+            # 이름("선정수"→"우수기관 선정")으로 엉뚱한 기사를 물어오는 것을 차단.
+            # (전문기자는 필자라 제목에 이름이 안 나오므로 이 필터를 걸지 않음)
+            and title_has_keyword(i["title"], ex["name"])
         ]
         filtered.sort(key=lambda x: x["pub_dt"], reverse=True)
 
