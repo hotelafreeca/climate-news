@@ -1761,7 +1761,7 @@ body {
   color: var(--text); text-decoration: none; line-height: 1.55;
 }
 .news-title.lang-en { font-size: 14.5px; font-weight: 600; letter-spacing: 0; }
-.news-title:hover { color: var(--accent); text-decoration: underline; }
+.news-title:hover { text-decoration: underline; }
 .empty-state {
   padding: 24px 14px; text-align: center;
   color: var(--muted); font-size: 12px;
@@ -1785,14 +1785,14 @@ body {
 .cal-event { border-bottom: 1px solid var(--border); }
 .cal-event:last-child { border-bottom: none; }
 .cal-event summary {
-  list-style: none; padding: 13px 0; cursor: pointer;
-  display: flex; flex-direction: column; gap: 4px;
+  list-style: none; padding: 13px 12px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 4px; transition: background .12s;
 }
 .cal-event summary::-webkit-details-marker { display: none; }
-.cal-event summary:hover { background: #fafafa; }
+.cal-event summary:hover { background: var(--card-hover); }
 .cal-event-title { font-size: 13px; font-weight: 600; line-height: 1.5; }
 .cal-event-memo  { font-size: 12px; color: var(--muted); line-height: 1.5; }
-.cal-event-keywords { padding: 0 0 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+.cal-event-keywords { padding: 0 12px 14px; display: flex; flex-wrap: wrap; gap: 6px; }
 .kw-chip {
   font-size: 11px; background: #fafafa;
   padding: 2px 8px; color: var(--muted); line-height: 1.6;
@@ -1809,8 +1809,10 @@ body {
 .expert-list { background: var(--card); }
 .expert-item {
   display: flex; gap: 18px;
-  padding: 16px 0; border-bottom: 1px solid var(--border);
+  padding: 16px 12px; border-bottom: 1px solid var(--border);
+  transition: background .12s;
 }
+.expert-item:hover { background: var(--card-hover); }
 .expert-item:last-child { border-bottom: none; }
 .expert-date {
   width: 64px; flex-shrink: 0;
@@ -1822,7 +1824,7 @@ body {
   font-size: 15px; font-weight: 700; color: var(--text);
   text-decoration: none; display: block; margin-bottom: 6px; line-height: 1.5;
 }
-.expert-title:hover { color: var(--accent); text-decoration: underline; }
+.expert-title:hover { text-decoration: underline; }
 .expert-meta {
   font-size: 11px; color: var(--muted); line-height: 1.6;
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
@@ -1865,7 +1867,7 @@ body {
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
 }
 .top-picks-sub { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.85); }
-.top-picks-body .news-item { padding: 15px 0; }
+.top-picks-body .news-item { padding: 15px 12px; }
 .cat-tag { color: var(--accent); font-weight: 700; font-size: 11px; }
 
 /* ── ECON RADAR ── */
@@ -1877,9 +1879,11 @@ body {
 /* ── 오늘의 경제 브리핑 카드 ── */
 .brief-list { background: var(--card); }
 .brief-item {
-  padding: 16px 0; border-bottom: 1px solid var(--border);
+  padding: 16px 12px; border-bottom: 1px solid var(--border);
   display: flex; gap: 14px; align-items: baseline;
+  transition: background .12s;
 }
+.brief-item:hover { background: var(--card-hover); }
 .brief-item:last-child { border-bottom: none; }
 .brief-rank {
   flex-shrink: 0; width: 26px; text-align: center;
@@ -1891,7 +1895,7 @@ body {
   display: block; font-size: 16px; font-weight: 800; color: var(--text);
   text-decoration: none; line-height: 1.5; margin-bottom: 6px;
 }
-.brief-head:hover { color: var(--accent); text-decoration: underline; }
+.brief-head:hover { text-decoration: underline; }
 .brief-summary { font-size: 13px; color: #333; line-height: 1.6; margin-bottom: 8px; }
 .brief-climate {
   font-size: 13px; font-weight: 700; color: var(--accent);
