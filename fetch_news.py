@@ -1674,19 +1674,19 @@ body {
   display: flex; align-items: flex-start; justify-content: space-between;
   flex-wrap: wrap; gap: 12px;
 }
-.header-left h1 { font-size: 1.45rem; font-weight: 800; letter-spacing: -.4px; line-height: 1.3; }
+.header-left h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: -.4px; line-height: 1.3; }
 .header-meta {
   margin-top: 8px; display: flex; flex-wrap: wrap; gap: 14px;
   font-size: 12px; color: var(--muted); line-height: 1.5;
 }
-.header-meta strong { color: var(--text); font-weight: 700; }
+.header-meta strong { color: var(--text); font-weight: 600; }
 .header-right { display: flex; align-items: center; }
 
 /* ── REFRESH BUTTON ── */
 .refresh-btn {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 9px 17px; border-radius: var(--radius); border: none;
-  background: var(--accent); color: #fff; font-size: 13px; font-weight: 700;
+  background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: background .15s; white-space: nowrap;
 }
 .refresh-btn:hover  { background: var(--accent-dark); }
@@ -1710,7 +1710,7 @@ body {
 .tab-nav::-webkit-scrollbar { display: none; }
 .tab-btn {
   flex: 1; min-width: 80px; padding: 14px 12px; border: none; background: transparent;
-  font-size: 14.5px; font-weight: 700; color: var(--text); cursor: pointer;
+  font-size: 14.5px; font-weight: 600; color: var(--text); cursor: pointer;
   letter-spacing: .02em;
   border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap;
   transition: all .15s; line-height: 1.4;
@@ -1738,7 +1738,7 @@ body {
   padding: 10px 12px; background: var(--text);
 }
 .cat-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--accent) !important; }
-.cat-name  { font-size: 14px; font-weight: 800; line-height: 1.4; color: #fff; }
+.cat-name  { font-size: 14px; font-weight: 700; line-height: 1.4; color: #fff; }
 .cat-count { margin-left: auto; font-size: 12px; color: rgba(255,255,255,.55); }
 .cat-body  { padding: 0; }
 
@@ -1754,13 +1754,13 @@ body {
   font-size: 12px; color: var(--muted); line-height: 1.5;
   display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
 }
-.source   { font-weight: 700; color: var(--text); }
+.source   { font-weight: 600; color: var(--text); }
 .pub-time { color: #9e9e9e; }
 .news-title {
-  display: block; font-size: 15.5px; font-weight: 700; letter-spacing: -.2px;
+  display: block; font-size: 15.5px; font-weight: 500; letter-spacing: -.2px;
   color: var(--text); text-decoration: none; line-height: 1.55;
 }
-.news-title.lang-en { font-size: 14.5px; font-weight: 600; letter-spacing: 0; }
+.news-title.lang-en { font-size: 14.5px; font-weight: 400; letter-spacing: 0; }
 .news-title:hover { text-decoration: underline; }
 .empty-state {
   padding: 24px 14px; text-align: center;
@@ -1770,14 +1770,14 @@ body {
 /* ── BADGE ── */
 .badge {
   display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 2px;
-  font-size: 11px; font-weight: 700; white-space: nowrap; line-height: 1.6;
+  font-size: 11px; font-weight: 600; white-space: nowrap; line-height: 1.6;
 }
 
 /* ── CALENDAR ── */
 .cal-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 40px; }
 .cal-month { background: var(--card); margin-bottom: 24px; }
 .cal-month-header {
-  padding: 10px 12px; font-size: 14px; font-weight: 800;
+  padding: 10px 12px; font-size: 14px; font-weight: 700;
   background: var(--text); color: #fff; line-height: 1.4;
 }
 .cal-month.current .cal-month-header { background: var(--accent); }
@@ -1790,7 +1790,7 @@ body {
 }
 .cal-event summary::-webkit-details-marker { display: none; }
 .cal-event summary:hover { background: var(--card-hover); }
-.cal-event-title { font-size: 13px; font-weight: 600; line-height: 1.5; }
+.cal-event-title { font-size: 13px; font-weight: 500; line-height: 1.5; }
 .cal-event-memo  { font-size: 12px; color: var(--muted); line-height: 1.5; }
 .cal-event-keywords { padding: 0 12px 14px; display: flex; flex-wrap: wrap; gap: 6px; }
 .kw-chip {
@@ -1799,7 +1799,7 @@ body {
 }
 .year-round-section { margin-top: 32px; }
 .year-round-section h3 {
-  font-size: 13px; font-weight: 800; color: #fff;
+  font-size: 13px; font-weight: 700; color: #fff;
   background: var(--text);
   margin-bottom: 0; letter-spacing: .3px;
   padding: 10px 12px;
@@ -1821,7 +1821,7 @@ body {
 }
 .expert-body { flex: 1; min-width: 0; }
 .expert-title {
-  font-size: 15px; font-weight: 700; color: var(--text);
+  font-size: 15px; font-weight: 500; color: var(--text);
   text-decoration: none; display: block; margin-bottom: 6px; line-height: 1.5;
 }
 .expert-title:hover { text-decoration: underline; }
@@ -1831,8 +1831,8 @@ body {
 }
 .expert-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .no-data { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 13px; }
-.tag-media { font-size: 11px; font-weight: 700; color: var(--text); }
-.tag-name  { font-size: 11px; font-weight: 600; color: var(--muted); }
+.tag-media { font-size: 11px; font-weight: 600; color: var(--text); }
+.tag-name  { font-size: 11px; font-weight: 500; color: var(--muted); }
 .tag-media + .tag-name::before { content: " · "; color: #d4d4d4; }
 
 /* ── PERSON CHIP (출연자·정책 인물) ── */
@@ -1840,7 +1840,7 @@ body {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 0 7px; border-radius: 2px; line-height: 1.7;
   background: #f5f5f5; color: #333; border: 1px solid #e0e0e0;
-  font-size: 11px; font-weight: 700; white-space: nowrap;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
 }
 .person-chip .chip-role { font-weight: 500; color: var(--muted); }
 .person-chip.policy {
@@ -1851,7 +1851,7 @@ body {
 /* ── SCORE BADGE (아이템성 스코어) ── */
 .score-badge {
   display: inline-flex; align-items: center; padding: 0 6px; border-radius: 2px;
-  font-size: 10px; font-weight: 700; white-space: nowrap; line-height: 1.7;
+  font-size: 10px; font-weight: 600; white-space: nowrap; line-height: 1.7;
 }
 .score-badge.hot  { background: var(--accent); color: #fff; }
 .score-badge.good { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); }
@@ -1862,13 +1862,13 @@ body {
   margin-bottom: 40px;
 }
 .top-picks-header {
-  padding: 10px 12px; font-size: 14px; font-weight: 800; line-height: 1.5;
+  padding: 10px 12px; font-size: 14px; font-weight: 700; line-height: 1.5;
   background: var(--accent); color: #fff;
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
 }
 .top-picks-sub { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.85); }
 .top-picks-body .news-item { padding: 15px 12px; }
-.cat-tag { color: var(--accent); font-weight: 700; font-size: 11px; }
+.cat-tag { color: var(--accent); font-weight: 600; font-size: 11px; }
 
 /* ── ECON RADAR ── */
 .radar-intro {
@@ -1887,18 +1887,18 @@ body {
 .brief-item:last-child { border-bottom: none; }
 .brief-rank {
   flex-shrink: 0; width: 26px; text-align: center;
-  font-size: 18px; font-weight: 800; color: var(--accent);
+  font-size: 18px; font-weight: 700; color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 .brief-body { flex: 1; min-width: 0; }
 .brief-head {
-  display: block; font-size: 16px; font-weight: 800; color: var(--text);
+  display: block; font-size: 16px; font-weight: 600; color: var(--text);
   text-decoration: none; line-height: 1.5; margin-bottom: 6px;
 }
 .brief-head:hover { text-decoration: underline; }
 .brief-summary { font-size: 13px; color: #333; line-height: 1.6; margin-bottom: 8px; }
 .brief-climate {
-  font-size: 13px; font-weight: 700; color: var(--accent);
+  font-size: 13px; font-weight: 600; color: var(--accent);
   line-height: 1.55; padding: 8px 12px;
   background: var(--accent-soft); border-left: 3px solid var(--accent);
 }
@@ -1923,7 +1923,7 @@ body {
 
 /* ── EN SECTION LABEL ── */
 .en-section-label {
-  font-size: 13px; font-weight: 800; color: #fff;
+  font-size: 13px; font-weight: 700; color: #fff;
   background: var(--text);
   margin-bottom: 0; letter-spacing: .3px;
   padding: 10px 12px;
