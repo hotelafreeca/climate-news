@@ -1659,10 +1659,10 @@ def generate_css():
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
                "Noto Sans KR", "Segoe UI", sans-serif;
-  background: var(--bg); color: var(--text); font-size: 14px;
-  line-height: 1.55;
+  background: var(--bg); color: var(--text); font-size: 14.5px;
+  line-height: 1.6;
 }
 
 /* ── HEADER ── */
@@ -1709,8 +1709,8 @@ body {
 .tab-nav::-webkit-scrollbar { display: none; }
 .tab-btn {
   flex: 1; min-width: 80px; padding: 14px 12px; border: none; background: transparent;
-  font-size: 14px; font-weight: 700; color: var(--text); cursor: pointer;
-  letter-spacing: .1em;
+  font-size: 14.5px; font-weight: 700; color: var(--text); cursor: pointer;
+  letter-spacing: .02em;
   border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap;
   transition: all .15s; line-height: 1.4;
 }
@@ -1737,8 +1737,8 @@ body {
   padding: 10px 12px; background: var(--text);
 }
 .cat-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--accent) !important; }
-.cat-name  { font-size: 13px; font-weight: 800; line-height: 1.4; color: #fff; }
-.cat-count { margin-left: auto; font-size: 11px; color: rgba(255,255,255,.55); }
+.cat-name  { font-size: 14px; font-weight: 800; line-height: 1.4; color: #fff; }
+.cat-count { margin-left: auto; font-size: 12px; color: rgba(255,255,255,.55); }
 .cat-body  { padding: 0; }
 
 /* ── NEWS ITEM ── */
@@ -1749,16 +1749,16 @@ body {
 .news-item:last-child { border-bottom: none; }
 .news-body { width: 100%; }
 .news-meta {
-  font-size: 11px; color: var(--muted); line-height: 1.5;
+  font-size: 12px; color: var(--muted); line-height: 1.5;
   display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
 }
 .source   { font-weight: 700; color: var(--text); }
 .pub-time { color: #9e9e9e; }
 .news-title {
-  display: block; font-size: 15px; font-weight: 700;
-  color: var(--text); text-decoration: none; line-height: 1.5;
+  display: block; font-size: 15.5px; font-weight: 700; letter-spacing: -.2px;
+  color: var(--text); text-decoration: none; line-height: 1.55;
 }
-.news-title.lang-en { font-size: 14px; font-weight: 600; }
+.news-title.lang-en { font-size: 14.5px; font-weight: 600; letter-spacing: 0; }
 .news-title:hover { color: var(--accent); text-decoration: underline; }
 .empty-state {
   padding: 24px 14px; text-align: center;
