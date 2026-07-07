@@ -1647,7 +1647,8 @@ def generate_css():
     return """
 :root {
   --bg:         #ffffff;
-  --card:       #ffffff;
+  --card:       #f6f7f9;   /* 카드·테이블 배경: 아주 연한 회색 (눈 피로 완화) */
+  --card-hover: #eceef2;
   --border:     #e5e5e5;
   --text:       #111111;
   --muted:      #767676;
@@ -1743,9 +1744,10 @@ body {
 
 /* ── NEWS ITEM ── */
 .news-item {
-  padding: 15px 0; border-bottom: 1px solid var(--border);
-  display: block;
+  padding: 14px 12px; border-bottom: 1px solid var(--border);
+  display: block; transition: background .12s;
 }
+.news-item:hover { background: var(--card-hover); }
 .news-item:last-child { border-bottom: none; }
 .news-body { width: 100%; }
 .news-meta {
