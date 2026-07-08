@@ -297,7 +297,7 @@ EXPERTS = [
     {"name": "권석준",    "role": "성균관대 화학공학과 교수",          "tag": "반도체·기술","search": "권석준 성균관대"},
     {"name": "권효재",    "role": "COR 에너지인사이트 대표",          "tag": "에너지",     "search": "권효재 에너지"},
     {"name": "차영주",    "role": "와이즈경제연구소 소장",             "tag": "경제·투자",  "search": "차영주 와이즈경제연구소"},
-    {"name": "선정수",    "role": "클리프 기자",                      "tag": "기후미디어", "search": "선정수 기자"},
+    {"name": "선정수",    "role": "클리프 기자",                      "tag": "기후미디어", "search": '"선정수" 기자'},
     {"name": "서재철",    "role": "녹색연합 전문위원",                "tag": "산불·산림",  "search": "서재철 녹색연합"},
     {"name": "이명주",    "role": "건물 에너지 전문가",               "tag": "건물·에너지","search": "이명주 건물 에너지"},
     {"name": "강구상",    "role": "대외경제정책연구원 북미유럽팀장",  "tag": "국제통상",   "search": "강구상 대외경제정책연구원"},
@@ -343,7 +343,7 @@ REPORTERS = [
     {"name": "김승환", "media": "세계일보",   "beat": "기후/환경",   "search": "김승환 세계일보 기후"},
     # 기후 전문 매체·단체
     {"name": "윤지로", "media": "클리프",     "beat": "기후미디어",  "search": "윤지로 클리프"},
-    {"name": "선정수", "media": "클리프",     "beat": "기후 팩트체크","search": "선정수 기후"},
+    {"name": "선정수", "media": "클리프",     "beat": "기후 팩트체크","search": '"선정수" 기후'},
     {"name": "권오성", "media": "기후솔루션", "beat": "기후·에너지", "search": "권오성 기후솔루션"},
     {"name": "뉴스룸", "media": "그린피스",   "beat": "기후 캠페인", "search": "그린피스 기후 에너지"},
 ]
@@ -1456,10 +1456,9 @@ def fetch_experts(experts):
             and i["pub_dt"] >= cutoff
             and not is_excluded(i)
             and not is_expert_excluded(i)
-            # 출연자 이름이 제목에 '단어'로 실제 등장해야 함 — 구글이 흔한 단어를 품은
-            # 이름("선정수"→"우수기관 선정")으로 엉뚱한 기사를 물어오는 것을 차단.
-            # (전문기자는 필자라 제목에 이름이 안 나오므로 이 필터를 걸지 않음)
-            and title_has_keyword(i["title"], ex["name"])
+            # 이름은 대개 본문에 인용될 뿐 제목엔 안 나오므로 '제목에 이름' 필터는 걸지
+            # 않는다. 흔한 단어를 품은 이름("선정수"→"선정")의 오매칭은 검색어 자체를
+            # 따옴표 정확일치("선정수")로 잡는다(EXPERTS/REPORTERS의 search 참조).
         ]
         filtered.sort(key=lambda x: x["pub_dt"], reverse=True)
 
