@@ -427,6 +427,12 @@ SOURCE_RENAME = {
     "sisaon": "시사오늘",
     "naewaynews": "내외신문",
     "catchnews": "CatchNews",
+    "ebn.co.kr": "EBN",                        # 3글자 'ebn'은 'webnews' 등 오탐 → 도메인으로 한정
+    "ohmynews": "오마이뉴스",                    # OhmyNews
+    "investnews": "인베스트",                    # investnews.co.kr
+    "gukjenews": "국제뉴스",                     # gukjenews.com
+    "sportschosun": "스포츠조선",                # sportschosun.com
+    "artivenews": "아티브뉴스",                  # artivenews.co.kr
 }
 
 EXPERT_EXCLUDE_PATTERNS = [
