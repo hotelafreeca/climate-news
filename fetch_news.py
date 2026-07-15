@@ -433,6 +433,7 @@ SOURCE_RENAME = {
     "gukjenews": "국제뉴스",                     # gukjenews.com
     "sportschosun": "스포츠조선",                # sportschosun.com
     "artivenews": "아티브뉴스",                  # artivenews.co.kr
+    "edaily.co.kr": "이데일리",                  # 'edaily'는 'thedaily' 등 오탐 → 도메인으로 한정
 }
 
 EXPERT_EXCLUDE_PATTERNS = [
